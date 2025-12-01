@@ -803,9 +803,9 @@ const RentalQuoteApp: React.FC = () => {
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
               <img
-                src="/Emerald Bay Logo for Documents.png"
+                src="/logo.png"
                 alt="Emerald Bay Logo"
-                className="h-12 w-auto object-contain"
+                className="w-12 h-12 rounded object-contain"
                 onError={(e) => {
                   e.currentTarget.style.display = 'none';
                   e.currentTarget.nextElementSibling?.classList.remove('hidden');
