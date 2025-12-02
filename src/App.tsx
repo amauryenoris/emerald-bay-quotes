@@ -319,7 +319,7 @@ const RentalQuoteApp: React.FC = () => {
 
     let logoBase64: string | null = null;
     try {
-      logoBase64 = await loadImageAsBase64(`${window.location.origin}/logo.png`);
+      logoBase64 = await loadImageAsBase64(`${window.location.origin}/Emerald_Bay_Logo_for_Documents.png`);
     } catch (error) {
       console.warn('Could not load logo:', error);
     }
@@ -802,7 +802,11 @@ const RentalQuoteApp: React.FC = () => {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
-              <img src="/logo.png" alt="Emerald Bay" className="h-12 w-12 rounded-full" />
+              <img 
+                src="/Emerald_Bay_Logo_for_Documents.png" 
+                alt="Emerald Bay Logo" 
+                className="h-20 w-auto object-contain mr-4"
+              />
               <div>
                 <h1 className="text-2xl font-bold text-gray-900">{t('header.title')}</h1>
                 <p className="text-gray-600">{t('header.subtitle')}</p>
