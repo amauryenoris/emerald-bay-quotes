@@ -1,5 +1,6 @@
 import React, { useState, useMemo } from 'react';
 import { Home, Calculator, FileDown, Users, Car, Heart, DollarSign, PawPrint, Tag } from 'lucide-react';
+import ReactGA from 'react-ga4';
 import { LanguageProvider, useLanguage } from './hooks/useLanguage';
 import LanguageSelector from './components/LanguageSelector';
 
@@ -170,6 +171,14 @@ const RentalQuoteApp: React.FC = () => {
         setRentalData(prev => ({ ...prev, [field]: value }));
         setShowPriceSelector(false);
       }
+      
+      // Track apartment selection
+      const apartmentName = apartments.find(apt => apt.id === value)?.name || 'Unknown';
+      ReactGA.event({
+        category: 'Quote',
+        action: 'apartment_selected',
+        label: apartmentName,
+      });
     } else {
       setRentalData(prev => ({ ...prev, [field]: value }));
     }
@@ -270,6 +279,13 @@ const RentalQuoteApp: React.FC = () => {
       const formData = { ...rentalData, prorationInfo: prorationInfo };
       await sendPDFViaWebhook(pdfBlob, formData);
       alert(t('pdf.send.success') + rentalData.tenantEmail);
+      
+      // Track email sent
+      ReactGA.event({
+        category: 'Email',
+        action: 'email_sent',
+        label: rentalData.tenantEmail,
+      });
     } catch (error) {
       console.error('Error generating or sending PDF:', error);
       alert('Error al generar el PDF. Por favor intente de nuevo.');
@@ -777,6 +793,16 @@ const RentalQuoteApp: React.FC = () => {
         (!rentalData.tenantName.trim() ? `• ${t('pdf.validation.tenant')}` : ''));
       return;
     }
+    
+    // Track quote generation
+    const apartmentType = apartments.find(apt => apt.id === rentalData.apartment)?.name || t('common.notSelected');
+    ReactGA.event({
+      category: 'Quote',
+      action: 'quote_generated',
+      label: apartmentType,
+      value: grandTotal,
+    });
+    
     generatePDFBlob().then((pdfBlob) => {
       const url = URL.createObjectURL(pdfBlob);
       const link = document.createElement('a');
@@ -790,6 +816,13 @@ const RentalQuoteApp: React.FC = () => {
       link.click();
       document.body.removeChild(link);
       URL.revokeObjectURL(url);
+      
+      // Track PDF download
+      ReactGA.event({
+        category: 'PDF',
+        action: 'pdf_downloaded',
+        label: rentalData.tenantName,
+      });
     }).catch((error) => {
       console.error('Error generating PDF:', error);
       alert('Error al generar el PDF. Por favor intente de nuevo.');
