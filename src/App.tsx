@@ -3,6 +3,9 @@ import { Home, Calculator, FileDown, Users, Car, Heart, DollarSign, PawPrint, Ta
 import ReactGA from 'react-ga4';
 import { LanguageProvider, useLanguage } from './hooks/useLanguage';
 import LanguageSelector from './components/LanguageSelector';
+import { useAuth } from './context/AuthContext';
+import Login from './components/Login';
+import { supabase } from './lib/supabase';
 
 // Webhook configuration - can be overridden with environment variables
 const WEBHOOK_URL = import.meta.env.VITE_WEBHOOK_URL || 'https://n8n.srv894089.hstgr.cloud/webhook/4723cc4d-53ba-4390-862b-602a7c5c010c';
@@ -27,6 +30,7 @@ interface RentalData {
 
 const RentalQuoteApp: React.FC = () => {
   const { t } = useLanguage();
+  const { user, signOut } = useAuth();
   const [rentalData, setRentalData] = useState<RentalData>({
     apartment: '',
     monthlyRent: 0,
@@ -291,6 +295,36 @@ const RentalQuoteApp: React.FC = () => {
       const pdfBlob = await generatePDFBlob();
       const formData = { ...rentalData, prorationInfo: prorationInfo };
       await sendPDFViaWebhook(pdfBlob, formData);
+
+      // Guardar en Supabase (no debe romper el flujo si falla)
+      try {
+        const { error: dbError } = await supabase.from('quotes').insert({
+          tenant_name: rentalData.tenantName,
+          tenant_email: rentalData.tenantEmail,
+          tenant_phone: rentalData.tenantPhone,
+          apartment_type: rentalData.apartment,
+          unit_number: rentalData.unitNumber || null,
+          monthly_rent: baseRent,
+          move_in_date: rentalData.moveInDate,
+          lease_term_months: rentalData.leaseTermMonths,
+          number_of_persons: rentalData.numberOfPersons,
+          number_of_pets: rentalData.numberOfPets,
+          needs_extra_parking: rentalData.needsExtraParking,
+          needs_animal_cleanup: rentalData.needsAnimalCleanup,
+          prorated_rent: prorationInfo.proratedRent,
+          monthly_total: monthlyTotal,
+          move_in_total: moveInCharges,
+          grand_total: moveInCharges + monthlyTotal,
+          status: 'sent',
+        });
+
+        if (dbError) {
+          console.error('Error saving to database:', dbError);
+        }
+      } catch (err) {
+        console.error('Database error:', err);
+      }
+
       alert(t('pdf.send.success') + rentalData.tenantEmail);
       
       // Track email sent
@@ -858,7 +892,22 @@ const RentalQuoteApp: React.FC = () => {
                 <p className="text-gray-600">{t('header.subtitle')}</p>
               </div>
             </div>
-            <LanguageSelector />
+            <div className="flex items-center gap-4">
+              {user && (
+                <div className="text-right text-sm">
+                  <p className="text-gray-700 font-medium truncate max-w-[200px]">
+                    {user.email}
+                  </p>
+                </div>
+              )}
+              <button
+                onClick={signOut}
+                className="text-xs px-3 py-1.5 rounded-full border border-gray-300 text-gray-700 hover:bg-gray-100 transition-colors"
+              >
+                Cerrar Sesión
+              </button>
+              <LanguageSelector />
+            </div>
           </div>
         </div>
       </header>
@@ -1348,6 +1397,20 @@ const RentalQuoteApp: React.FC = () => {
 };
 
 const App: React.FC = () => {
+  const { user, loading } = useAuth();
+
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-emerald-light/20 to-emerald-primary/10">
+        <div className="text-gray-700 text-sm">Cargando...</div>
+      </div>
+    );
+  }
+
+  if (!user) {
+    return <Login />;
+  }
+
   return (
     <LanguageProvider>
       <RentalQuoteApp />
