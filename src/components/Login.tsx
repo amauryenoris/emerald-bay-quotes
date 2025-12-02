@@ -13,17 +13,48 @@ const Login: React.FC = () => {
     setError(null)
 
     try {
-      const { error } = await supabase.auth.signInWithPassword({
+      // Verificar configuración antes de intentar login
+      const supabaseUrl = import.meta.env.VITE_SUPABASE_URL
+      const supabaseKey = import.meta.env.VITE_SUPABASE_ANON_KEY
+
+      if (!supabaseUrl || supabaseUrl === 'REEMPLAZAR_CON_TU_URL' || !supabaseUrl.startsWith('https://')) {
+        setError('Error de configuración: VITE_SUPABASE_URL no está configurada correctamente. Verifica tu archivo .env.local')
+        setLoading(false)
+        return
+      }
+
+      if (!supabaseKey || supabaseKey === 'REEMPLAZAR_CON_TU_KEY' || supabaseKey.length < 20) {
+        setError('Error de configuración: VITE_SUPABASE_ANON_KEY no está configurada correctamente. Verifica tu archivo .env.local')
+        setLoading(false)
+        return
+      }
+
+      const { data, error } = await supabase.auth.signInWithPassword({
         email,
         password,
       })
 
       if (error) {
-        setError(error.message)
+        // Mensajes de error más específicos
+        if (error.message.includes('fetch')) {
+          setError('Error de conexión con Supabase. Verifica que la URL sea correcta y que el servidor esté accesible.')
+        } else if (error.message.includes('Invalid login credentials')) {
+          setError('Credenciales inválidas. Verifica tu email y contraseña.')
+        } else {
+          setError(error.message)
+        }
+        console.error('Supabase auth error:', error)
+      } else if (data?.user) {
+        // Login exitoso - el AuthContext manejará el cambio de estado
+        console.log('Login exitoso:', data.user.email)
       }
-    } catch (err) {
-      setError('Error de conexión. Verifica que las variables de entorno estén configuradas.')
+    } catch (err: any) {
       console.error('Login error:', err)
+      if (err?.message?.includes('fetch') || err?.name === 'TypeError') {
+        setError('Error de conexión: No se pudo conectar con el servidor de autenticación. Verifica tu conexión a internet y la configuración de Supabase.')
+      } else {
+        setError(`Error inesperado: ${err?.message || 'Error desconocido'}`)
+      }
     } finally {
       setLoading(false)
     }
