@@ -18,6 +18,7 @@ interface RentalData {
   hasSecondSpecialDiscount: boolean; // <-- NUEVO CAMPO EN EL ESTADO
   tenantName: string;
   tenantEmail: string;
+  tenantPhone: string;
   unitNumber: string;
   moveInDate: string;
   leaseTermMonths: number;
@@ -37,6 +38,7 @@ const RentalQuoteApp: React.FC = () => {
     hasSecondSpecialDiscount: false, // <-- Inicializado
     tenantName: '',
     tenantEmail: '',
+    tenantPhone: '',
     unitNumber: '',
     moveInDate: '',
     leaseTermMonths: 12,
@@ -195,6 +197,11 @@ const RentalQuoteApp: React.FC = () => {
     setShowPriceSelector(false);
   };
 
+  const isValidUSTelephone = (phone: string) => {
+    const digitsOnly = phone.replace(/\D/g, '');
+    return digitsOnly.length === 10;
+  };
+
   const sendPDFViaWebhook = async (pdfBlob: Blob, formData: any) => {
     try {
       const formDataToSend = new FormData();
@@ -205,6 +212,7 @@ const RentalQuoteApp: React.FC = () => {
         tenant: {
           name: formData.tenantName,
           email: formData.tenantEmail,
+          tenantPhone: formData.tenantPhone,
           unitNumber: formData.unitNumber,
           leasingAgent: formData.leasingAgent,
           moveInDate: formData.moveInDate,
@@ -269,6 +277,11 @@ const RentalQuoteApp: React.FC = () => {
 
     if (!rentalData.tenantEmail) {
       alert(t('pdf.send.emailRequired'));
+      return;
+    }
+
+    if (!rentalData.tenantPhone || !isValidUSTelephone(rentalData.tenantPhone)) {
+      alert('Por favor ingrese un número de teléfono válido de 10 dígitos / Please enter a valid 10-digit phone number.');
       return;
     }
 
@@ -912,6 +925,21 @@ const RentalQuoteApp: React.FC = () => {
                       onChange={(e) => handleChange('tenantEmail', e.target.value)}
                       className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-primary focus:border-emerald-primary transition-colors"
                       placeholder={t('rental.tenant.email.placeholder')}
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-gray-600 mb-2">
+                       Phone Number
+                    </label>
+                    <input
+                      type="tel"
+                      value={rentalData.tenantPhone}
+                      onChange={(e) => handleChange('tenantPhone', e.target.value)}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-primary focus:border-emerald-primary transition-colors"
+                      placeholder="(305) 123-4567"
+                      pattern="\(?\d{3}\)?[-.\s]?\d{3}[-.\s]?\d{4}"
+                      required
                     />
                   </div>
 
