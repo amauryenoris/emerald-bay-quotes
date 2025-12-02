@@ -325,7 +325,7 @@ const RentalQuoteApp: React.FC = () => {
     }
 
     const generatePDFWithLogo = (doc: any, logoBase64: string | null, qrCodeDataURL: string | null) => {
-      const primaryColor = [34, 197, 94];
+      const primaryColor = [29, 170, 108]; // Emerald Bay primary green #1DAA6C
       const textColor = [51, 51, 51];
       const lightGreen = [240, 253, 244];
       
@@ -797,7 +797,7 @@ const RentalQuoteApp: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100">
+    <div className="min-h-screen bg-gradient-to-br from-emerald-light/20 to-emerald-primary/10">
       <header className="bg-white shadow-sm border-b border-gray-200">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
           <div className="flex items-center justify-between">
@@ -821,7 +821,7 @@ const RentalQuoteApp: React.FC = () => {
           <div className="lg:col-span-2 space-y-6">
             <div className="bg-white rounded-lg shadow-lg p-6 border border-gray-200">
               <div className="flex items-center gap-2 mb-4">
-                <Home className="w-5 h-5 text-blue-600" />
+                <Home className="w-5 h-5 text-emerald-primary" />
                 <h3 className="text-lg font-semibold text-gray-800">{t('apartment.title')}</h3>
               </div>
               
@@ -834,12 +834,12 @@ const RentalQuoteApp: React.FC = () => {
                       onClick={() => handleChange('apartment', apartment.id)}
                       className={`p-3 rounded-lg border-2 transition-all duration-200 text-left ${
                         isSelected
-                          ? 'border-blue-500 bg-blue-50 text-blue-700 shadow-md'
+                          ? 'border-emerald-primary bg-emerald-light/20 text-emerald-dark shadow-md'
                           : 'border-gray-200 bg-white text-gray-700 hover:border-gray-300 hover:bg-gray-50'
                       }`}
                     >
                       <div className="font-medium text-sm leading-tight">{apartment.name}</div>
-                      <div className={`text-xs mt-1 ${isSelected ? 'text-blue-600' : 'text-gray-500'}`}>
+                      <div className={`text-xs mt-1 ${isSelected ? 'text-emerald-primary' : 'text-gray-500'}`}>
                         {apartment.category}
                       </div>
                     </button>
@@ -849,7 +849,7 @@ const RentalQuoteApp: React.FC = () => {
             </div>
             <div className="bg-white rounded-lg shadow-lg p-6 border border-gray-200">
               <div className="flex items-center gap-2 mb-6">
-                <Calculator className="w-6 h-6 text-blue-600" />
+                <Calculator className="w-6 h-6 text-emerald-primary" />
                 <h2 className="text-xl font-bold text-gray-800">{t('rental.title')}</h2>
               </div>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -864,7 +864,7 @@ const RentalQuoteApp: React.FC = () => {
                       type="text"
                       value={rentalData.tenantName}
                       onChange={(e) => handleChange('tenantName', e.target.value)}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-primary focus:border-emerald-primary transition-colors"
                       placeholder={t('rental.tenant.name.placeholder')}
                     />
                   </div>
@@ -877,7 +877,7 @@ const RentalQuoteApp: React.FC = () => {
                       type="email"
                       value={rentalData.tenantEmail}
                       onChange={(e) => handleChange('tenantEmail', e.target.value)}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-primary focus:border-emerald-primary transition-colors"
                       placeholder={t('rental.tenant.email.placeholder')}
                     />
                   </div>
@@ -890,7 +890,7 @@ const RentalQuoteApp: React.FC = () => {
                       type="text"
                       value={rentalData.unitNumber}
                       onChange={(e) => handleChange('unitNumber', e.target.value)}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-primary focus:border-emerald-primary transition-colors"
                       placeholder={t('rental.tenant.unitNumber.placeholder')}
                     />
                   </div>
@@ -902,7 +902,7 @@ const RentalQuoteApp: React.FC = () => {
                     <select
                       value={rentalData.leasingAgent}
                       onChange={(e) => handleChange('leasingAgent', e.target.value)}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-primary focus:border-emerald-primary transition-colors"
                     >
                       <option value="">{t('rental.tenant.leasingAgent.placeholder')}</option>
                       <option value="Amaury Noris">Amaury Noris</option>
@@ -918,7 +918,7 @@ const RentalQuoteApp: React.FC = () => {
                       type="date"
                       value={rentalData.moveInDate}
                       onChange={(e) => handleChange('moveInDate', e.target.value)}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-primary focus:border-emerald-primary transition-colors"
                     />
                   </div>
 
@@ -929,7 +929,7 @@ const RentalQuoteApp: React.FC = () => {
                     <select
                       value={rentalData.leaseTermMonths}
                       onChange={(e) => handleChange('leaseTermMonths', parseInt(e.target.value))}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-primary focus:border-emerald-primary transition-colors"
                     >
                       <option value={6}>{t('rental.tenant.leaseTerm.6')}</option>
                       <option value={12}>{t('rental.tenant.leaseTerm.12')}</option>
@@ -958,9 +958,9 @@ const RentalQuoteApp: React.FC = () => {
                             <button
                               key={price}
                               onClick={() => handlePriceSelection(price)}
-                              className="p-3 border-2 border-blue-200 rounded-lg hover:border-blue-500 hover:bg-blue-50 transition-all duration-200 text-center"
+                              className="p-3 border-2 border-emerald-light rounded-lg hover:border-emerald-primary hover:bg-emerald-light/20 transition-all duration-200 text-center"
                             >
-                              <div className="font-semibold text-blue-700">
+                              <div className="font-semibold text-emerald-dark">
                                 {formatCurrency(price)}
                               </div>
                             </button>
@@ -980,7 +980,7 @@ const RentalQuoteApp: React.FC = () => {
                         type="number"
                         value={rentalData.monthlyRent || ''}
                         onChange={(e) => handleManualPriceChange(e.target.value)}
-                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
+                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-primary focus:border-emerald-primary transition-colors"
                         placeholder={t('financial.monthlyRent.placeholder')}
                         min="0"
                         step="0.01"
@@ -998,7 +998,7 @@ const RentalQuoteApp: React.FC = () => {
                         type="number"
                         value={rentalData.numberOfPersons}
                         onChange={(e) => handleChange('numberOfPersons', parseInt(e.target.value) || 1)}
-                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
+                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-primary focus:border-emerald-primary transition-colors"
                         min="1"
                         max="10"
                       />
@@ -1015,7 +1015,7 @@ const RentalQuoteApp: React.FC = () => {
                         type="number"
                         value={rentalData.numberOfPets}
                         onChange={(e) => handleChange('numberOfPets', parseInt(e.target.value) || 0)}
-                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
+                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-primary focus:border-emerald-primary transition-colors"
                         min="0"
                         max="5"
                       />
@@ -1036,7 +1036,7 @@ const RentalQuoteApp: React.FC = () => {
                           type="checkbox"
                           checked={rentalData.needsExtraParking}
                           onChange={(e) => handleChange('needsExtraParking', e.target.checked)}
-                          className="w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 rounded focus:ring-blue-500"
+                          className="w-4 h-4 text-emerald-primary bg-gray-100 border-gray-300 rounded focus:ring-emerald-primary"
                         />
                         <span className="text-sm font-medium text-gray-700">
                           {t('services.extraParking')}
@@ -1053,7 +1053,7 @@ const RentalQuoteApp: React.FC = () => {
                           type="checkbox"
                           checked={rentalData.needsAnimalCleanup}
                           onChange={(e) => handleChange('needsAnimalCleanup', e.target.checked)}
-                          className="w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 rounded focus:ring-blue-500"
+                          className="w-4 h-4 text-emerald-primary bg-gray-100 border-gray-300 rounded focus:ring-emerald-primary"
                         />
                         <span className="text-sm font-medium text-gray-700">
                           {t('services.animalCleanup')}
@@ -1116,16 +1116,16 @@ const RentalQuoteApp: React.FC = () => {
                   <h2 className="text-xl font-bold text-gray-800">{t('costs.title')}</h2>
                 </div>
 
-                <div className="mb-6 p-4 bg-blue-50 rounded-lg">
+                <div className="mb-6 p-4 bg-emerald-light/20 rounded-lg">
                   <h3 className="text-lg font-semibold text-gray-800">{t('costs.apartment')}</h3>
-                  <p className="text-blue-700 font-medium">
+                  <p className="text-emerald-dark font-medium">
                     {rentalData.apartment ? apartments.find(apt => apt.id === rentalData.apartment)?.name : t('common.notSelected')}
                   </p>
                 </div>
 
                 <div className="mb-6">
                   <h4 className="text-md font-semibold text-gray-700 mb-3 flex items-center gap-2">
-                    <Home className="w-4 h-4 text-blue-500" />
+                    <Home className="w-4 h-4 text-emerald-primary" />
                     {t('costs.monthly')}
                   </h4>
                   <div className="space-y-2 text-sm">
@@ -1237,12 +1237,12 @@ const RentalQuoteApp: React.FC = () => {
 
                     <div className="border-t pt-2 flex justify-between font-semibold">
                       <span>{t('costs.moveInTotal')}</span>
-                      <span className="text-blue-600">{formatCurrency(moveInCharges)}</span>
+                      <span className="text-emerald-primary">{formatCurrency(moveInCharges)}</span>
                     </div>
                   </div>
                 </div>
 
-                <div className="bg-gradient-to-r from-green-50 to-blue-50 p-4 rounded-lg border-2 border-green-200">
+                <div className="bg-gradient-to-r from-emerald-light/20 to-emerald-primary/10 p-4 rounded-lg border-2 border-emerald-primary">
                   <div className="flex justify-between items-center">
                     <span className="text-lg font-bold text-gray-800">{t('costs.grandTotal')}</span>
                     <span className="text-2xl font-bold text-green-600">{formatCurrency(grandTotal)}</span>
@@ -1254,7 +1254,7 @@ const RentalQuoteApp: React.FC = () => {
                 <button
                   onClick={generatePDF}
                   disabled={!rentalData.apartment || !rentalData.monthlyRent || !rentalData.tenantName.trim()}
-                  className="w-full flex items-center justify-center gap-2 bg-blue-600 text-white px-4 py-3 rounded-lg hover:bg-blue-700 disabled:bg-gray-300 disabled:cursor-not-allowed transition-colors font-medium"
+                  className="w-full flex items-center justify-center gap-2 bg-emerald-primary text-white px-4 py-3 rounded-lg hover:bg-emerald-dark disabled:bg-gray-300 disabled:cursor-not-allowed transition-colors font-medium"
                 >
                   <FileDown className="w-5 h-5" />
                   {t('pdf.download')}
