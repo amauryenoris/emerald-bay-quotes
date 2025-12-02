@@ -5,6 +5,7 @@ import { LanguageProvider, useLanguage } from './hooks/useLanguage';
 import LanguageSelector from './components/LanguageSelector';
 import { useAuth } from './context/AuthContext';
 import Login from './components/Login';
+import Dashboard from './components/Dashboard';
 import { supabase } from './lib/supabase';
 
 // Webhook configuration - can be overridden with environment variables
@@ -31,6 +32,7 @@ interface RentalData {
 const RentalQuoteApp: React.FC = () => {
   const { t } = useLanguage();
   const { user, signOut } = useAuth();
+  const [currentView, setCurrentView] = useState<'form' | 'dashboard'>('form');
   const [rentalData, setRentalData] = useState<RentalData>({
     apartment: '',
     monthlyRent: 0,
@@ -305,7 +307,7 @@ const RentalQuoteApp: React.FC = () => {
           apartment_type: rentalData.apartment,
           unit_number: rentalData.unitNumber || null,
           monthly_rent: baseRent,
-          move_in_date: rentalData.moveInDate,
+          move_in_date: rentalData.moveInDate || null,
           lease_term_months: rentalData.leaseTermMonths,
           number_of_persons: rentalData.numberOfPersons,
           number_of_pets: rentalData.numberOfPets,
@@ -319,10 +321,16 @@ const RentalQuoteApp: React.FC = () => {
         });
 
         if (dbError) {
-          console.error('Error saving to database:', dbError);
+          console.error('❌ Error guardando en Supabase:');
+          console.error('Message:', dbError.message);
+          console.error('Details:', dbError.details);
+          console.error('Hint:', dbError.hint);
+          console.error('Code:', dbError.code);
+          console.error('Full error:', JSON.stringify(dbError, null, 2));
         }
       } catch (err) {
-        console.error('Database error:', err);
+        console.error('❌ Exception al guardar quote:', err);
+        console.error('Exception details:', JSON.stringify(err, null, 2));
       }
 
       alert(t('pdf.send.success') + rentalData.tenantEmail);
@@ -893,6 +901,29 @@ const RentalQuoteApp: React.FC = () => {
               </div>
             </div>
             <div className="flex items-center gap-4">
+              {/* Botones de navegación */}
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={() => setCurrentView('form')}
+                  className={`px-4 py-2 rounded-lg font-medium transition-colors ${
+                    currentView === 'form'
+                      ? 'bg-[#1DAA6C] text-white'
+                      : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
+                  }`}
+                >
+                  Generar Quote
+                </button>
+                <button
+                  onClick={() => setCurrentView('dashboard')}
+                  className={`px-4 py-2 rounded-lg font-medium transition-colors ${
+                    currentView === 'dashboard'
+                      ? 'bg-[#1DAA6C] text-white'
+                      : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
+                  }`}
+                >
+                  Ver Quotes
+                </button>
+              </div>
               {user && (
                 <div className="text-right text-sm">
                   <p className="text-gray-700 font-medium truncate max-w-[200px]">
@@ -912,7 +943,8 @@ const RentalQuoteApp: React.FC = () => {
         </div>
       </header>
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+        {currentView === 'form' ? (
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
           <div className="lg:col-span-2 space-y-6">
             <div className="bg-white rounded-lg shadow-lg p-6 border border-gray-200">
               <div className="flex items-center gap-2 mb-4">
@@ -1028,6 +1060,7 @@ const RentalQuoteApp: React.FC = () => {
                       type="date"
                       value={rentalData.moveInDate}
                       onChange={(e) => handleChange('moveInDate', e.target.value)}
+                      required={true}
                       className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-primary focus:border-emerald-primary transition-colors"
                     />
                   </div>
@@ -1391,6 +1424,9 @@ const RentalQuoteApp: React.FC = () => {
             </div>
           </div>
         </div>
+        ) : (
+          <Dashboard />
+        )}
       </main>
     </div>
   );
