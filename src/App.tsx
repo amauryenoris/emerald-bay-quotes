@@ -165,7 +165,7 @@ const RentalQuoteApp: React.FC = () => {
       '1/1': apartmentName.includes('Coral') ? [2000] : [2250],
       '2/2': [2650, 2785],
       '3/2': [2950, 3220],
-      '3/2.5': [3785, 3645],
+      '3/2.5': [3500],
     };
     
     return pricingRules[category as keyof typeof pricingRules] || [];

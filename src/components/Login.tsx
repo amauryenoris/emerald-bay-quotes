@@ -11,77 +11,62 @@ const Login: React.FC<LoginProps> = ({ onSwitchToRegister }) => {
   const [loading, setLoading] = useState<boolean>(false)
   const [error, setError] = useState<string | null>(null)
 
-  const handleLogin = async (e: FormEvent) => {
+  const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault()
     setLoading(true)
     setError(null)
-
+    
     try {
-      // Verificar configuración antes de intentar login
-      const supabaseUrl = import.meta.env.VITE_SUPABASE_URL
-      const supabaseKey = import.meta.env.VITE_SUPABASE_ANON_KEY
-
-      if (!supabaseUrl || supabaseUrl === 'REEMPLAZAR_CON_TU_URL' || !supabaseUrl.startsWith('https://')) {
-        setError('Error de configuración: VITE_SUPABASE_URL no está configurada correctamente. Verifica tu archivo .env.local')
-        setLoading(false)
-        return
-      }
-
-      if (!supabaseKey || supabaseKey === 'REEMPLAZAR_CON_TU_KEY' || supabaseKey.length < 20) {
-        setError('Error de configuración: VITE_SUPABASE_ANON_KEY no está configurada correctamente. Verifica tu archivo .env.local')
-        setLoading(false)
-        return
-      }
-
-      const { data, error } = await supabase.auth.signInWithPassword({
+      // 1. Intentar login
+      const { data: authData, error: authError } = await supabase.auth.signInWithPassword({
         email,
-        password,
+        password
       })
-
-      if (error) {
-        // Mensajes de error más específicos
-        if (error.message.includes('fetch')) {
-          setError('Error de conexión con Supabase. Verifica que la URL sea correcta y que el servidor esté accesible.')
-        } else if (error.message.includes('Invalid login credentials')) {
-          setError('Credenciales inválidas. Verifica tu email y contraseña.')
-        } else {
-          setError(error.message)
-        }
-        console.error('Supabase auth error:', error)
+      
+      if (authError) {
+        setError(authError.message)
         return
       }
-
-      // Verificar si usuario está activo
-      if (data?.user) {
-        const { data: profile, error: profileError } = await supabase
-          .from('user_profiles')
-          .select('is_active')
-          .eq('id', data.user.id)
-          .single()
-        
-        if (profileError || !profile) {
-          setError('Unable to verify account status')
-          await supabase.auth.signOut()
-          return
-        }
-        
-        if (!profile.is_active) {
-          setError('Your account is pending admin approval. Please contact an administrator.')
-          await supabase.auth.signOut()
-          return
-        }
-
-        // Si llegamos aquí, está todo OK
-        // El AuthContext manejará el resto
-        console.log('Login exitoso:', data.user.email)
+      
+      if (!authData.user) {
+        setError('Login failed')
+        return
       }
+      
+      // 2. VERIFICAR si usuario está activo
+      const { data: profile, error: profileError } = await supabase
+        .from('user_profiles')
+        .select('is_active, deleted_at')
+        .eq('id', authData.user.id)
+        .single()
+      
+      if (profileError) {
+        console.error('Profile error:', profileError)
+        setError('Unable to verify account status')
+        await supabase.auth.signOut()
+        return
+      }
+      
+      // 3. Verificar si está eliminado
+      if (profile.deleted_at) {
+        setError('This account has been deleted. Please contact support.')
+        await supabase.auth.signOut()
+        return
+      }
+      
+      // 4. Verificar si está activo
+      if (!profile.is_active) {
+        setError('Your account is pending admin approval. Please contact an administrator.')
+        await supabase.auth.signOut()
+        return
+      }
+      
+      // 5. Si llegamos aquí, todo está OK
+      // El AuthContext detectará el login y actualizará el estado
+      
     } catch (err: any) {
       console.error('Login error:', err)
-      if (err?.message?.includes('fetch') || err?.name === 'TypeError') {
-        setError('Error de conexión: No se pudo conectar con el servidor de autenticación. Verifica tu conexión a internet y la configuración de Supabase.')
-      } else {
-        setError(`Error inesperado: ${err?.message || 'Error desconocido'}`)
-      }
+      setError(err.message || 'Login failed')
     } finally {
       setLoading(false)
     }

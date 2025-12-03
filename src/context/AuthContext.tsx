@@ -8,6 +8,16 @@ import React, {
 import type { User } from '@supabase/supabase-js'
 import { supabase } from '../lib/supabase'
 
+interface UserProfile {
+  id: string
+  email: string
+  full_name: string | null
+  role: string
+  is_active: boolean
+  deleted_at: string | null
+  created_at: string
+}
+
 interface AuthContextType {
   user: User | null
   loading: boolean
@@ -23,6 +33,40 @@ interface AuthProviderProps {
 export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const [user, setUser] = useState<User | null>(null)
   const [loading, setLoading] = useState<boolean>(true)
+  const [userProfile, setUserProfile] = useState<UserProfile | null>(null)
+  const [userRole, setUserRole] = useState<string | null>(null)
+
+  const loadUserProfile = async (userId: string) => {
+    try {
+      const { data, error } = await supabase
+        .from('user_profiles')
+        .select('*')
+        .eq('id', userId)
+        .single()
+      
+      if (error) {
+        console.error('Error loading profile:', error)
+        setUserProfile(null)
+        setUserRole(null)
+        return
+      }
+      
+      // Verificar si está activo y no eliminado
+      if (!data.is_active || data.deleted_at) {
+        console.log('User is inactive or deleted, logging out')
+        await supabase.auth.signOut()
+        setUserProfile(null)
+        setUserRole(null)
+        return
+      }
+      
+      // Si está activo, cargar normalmente
+      setUserProfile(data)
+      setUserRole(data.role)
+    } catch (err) {
+      console.error('Error loading user profile:', err)
+    }
+  }
 
   useEffect(() => {
     let isMounted = true
@@ -38,14 +82,22 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 
         if (session?.user) {
           setUser(session.user)
+          await loadUserProfile(session.user.id)
         }
         setLoading(false)
 
         const {
           data: { subscription: authSubscription },
-        } = supabase.auth.onAuthStateChange((_event, session) => {
+        } = supabase.auth.onAuthStateChange(async (_event, session) => {
           if (!isMounted) return
-          setUser(session?.user ?? null)
+          if (session?.user) {
+            setUser(session.user)
+            await loadUserProfile(session.user.id)
+          } else {
+            setUser(null)
+            setUserProfile(null)
+            setUserRole(null)
+          }
           setLoading(false)
         })
 
@@ -70,6 +122,8 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const signOut = async () => {
     try {
       await supabase.auth.signOut()
+      setUserProfile(null)
+      setUserRole(null)
     } catch (error) {
       console.error('Error signing out:', error)
     }
