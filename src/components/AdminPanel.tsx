@@ -1,8 +1,10 @@
 import React, { useState } from 'react'
+import { useLanguage } from '../context/LanguageContext'
 import AdminSpecials from './AdminSpecials'
 import UserManagement from './UserManagement'
 
 const AdminPanel: React.FC = () => {
+  const { t } = useLanguage()
   const [activeTab, setActiveTab] = useState<'specials' | 'users'>('specials')
 
   return (
@@ -18,7 +20,7 @@ const AdminPanel: React.FC = () => {
                 : 'border-transparent text-gray-500 hover:text-gray-700'
             }`}
           >
-            Specials
+            {t('admin.specials')}
           </button>
           <button
             onClick={() => setActiveTab('users')}
@@ -28,7 +30,7 @@ const AdminPanel: React.FC = () => {
                 : 'border-transparent text-gray-500 hover:text-gray-700'
             }`}
           >
-            User Management
+            {t('admin.users')}
           </button>
         </nav>
       </div>

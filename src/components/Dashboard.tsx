@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../context/AuthContext';
+import { useLanguage } from '../context/LanguageContext';
 import QuoteDetailsModal from './QuoteDetailsModal';
 
 interface Quote {
@@ -26,6 +27,7 @@ interface Quote {
 }
 
 const Dashboard: React.FC = () => {
+  const { t } = useLanguage();
   const [quotes, setQuotes] = useState<Quote[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
   const [searchTerm, setSearchTerm] = useState<string>('');
@@ -164,7 +166,7 @@ const Dashboard: React.FC = () => {
       <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-emerald-50 via-white to-emerald-100">
         <div className="text-center">
           <div className="inline-block animate-spin rounded-full h-12 w-12 border-b-2 border-[#1DAA6C]"></div>
-          <p className="mt-4 text-gray-700">Cargando quotes...</p>
+          <p className="mt-4 text-gray-700">{t('common.loading')}</p>
         </div>
       </div>
     );
@@ -175,7 +177,7 @@ const Dashboard: React.FC = () => {
       <div className="max-w-7xl mx-auto">
         {/* Header */}
         <div className="mb-8">
-          <h1 className="text-3xl font-bold text-gray-800 mb-2">Dashboard de Quotes</h1>
+          <h1 className="text-3xl font-bold text-gray-800 mb-2">{t('dashboard.title')}</h1>
           <p className="text-gray-600">Gestiona y visualiza todos los quotes generados</p>
         </div>
 
@@ -192,7 +194,7 @@ const Dashboard: React.FC = () => {
                 type="text"
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
-                placeholder="Buscar por nombre, email, teléfono o apartamento..."
+                placeholder={t('dashboard.search')}
                 className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#1DAA6C] focus:border-[#1DAA6C] transition-colors"
               />
             </div>
@@ -200,7 +202,7 @@ const Dashboard: React.FC = () => {
             {/* Filtro fecha Desde - 15% en desktop */}
             <div className="lg:col-span-2">
               <label htmlFor="dateStart" className="block text-sm font-medium text-gray-700 mb-2">
-                Desde:
+                {t('dashboard.from')}
               </label>
               <input
                 id="dateStart"
@@ -214,7 +216,7 @@ const Dashboard: React.FC = () => {
             {/* Filtro fecha Hasta - 15% en desktop */}
             <div className="lg:col-span-2">
               <label htmlFor="dateEnd" className="block text-sm font-medium text-gray-700 mb-2">
-                Hasta:
+                {t('dashboard.to')}
               </label>
               <input
                 id="dateEnd"
@@ -235,7 +237,7 @@ const Dashboard: React.FC = () => {
                   }}
                   className="w-full px-4 py-2 text-sm font-medium text-white bg-[#1DAA6C] rounded-lg hover:bg-[#1a9559] transition-colors"
                 >
-                  Limpiar
+                  {t('dashboard.clearFilters')}
                 </button>
               )}
             </div>
@@ -244,8 +246,8 @@ const Dashboard: React.FC = () => {
           {/* Contador de resultados */}
           <div className="mt-4 pt-4 border-t border-gray-200">
             <p className="text-sm text-gray-600">
-              Mostrando <span className="font-semibold text-gray-800">{filteredQuotes.length}</span> de{' '}
-              <span className="font-semibold text-gray-800">{quotes.length}</span> quotes
+              {t('dashboard.showing')} <span className="font-semibold text-gray-800">{filteredQuotes.length}</span> {t('dashboard.of')}{' '}
+              <span className="font-semibold text-gray-800">{quotes.length}</span> {t('dashboard.quotes')}
             </p>
           </div>
         </div>
@@ -256,7 +258,7 @@ const Dashboard: React.FC = () => {
           <div className="bg-white rounded-lg shadow-md p-6">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm font-medium text-gray-600 mb-1">Total Quotes</p>
+                <p className="text-sm font-medium text-gray-600 mb-1">{t('stats.total')}</p>
                 <p className="text-3xl font-bold text-gray-800">{totalQuotes}</p>
               </div>
               <div className="bg-[#1DAA6C]/10 rounded-full p-3">
@@ -269,7 +271,7 @@ const Dashboard: React.FC = () => {
           <div className="bg-white rounded-lg shadow-md p-6">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm font-medium text-gray-600 mb-1">Este Mes</p>
+                <p className="text-sm font-medium text-gray-600 mb-1">{t('stats.thisMonth')}</p>
                 <p className="text-3xl font-bold text-gray-800">{thisMonth}</p>
               </div>
               <div className="bg-[#1DAA6C]/10 rounded-full p-3">
@@ -281,7 +283,7 @@ const Dashboard: React.FC = () => {
           {/* 3. Top 3 Apartamentos - Card más alto */}
           <div className="bg-white rounded-lg shadow-md p-6 min-h-[200px] flex flex-col">
             <div className="flex items-center justify-between mb-4">
-              <p className="text-sm font-medium text-gray-600">Top 3 Apartamentos</p>
+              <p className="text-sm font-medium text-gray-600">{t('stats.top3')}</p>
               <div className="bg-[#1DAA6C]/10 rounded-full p-2">
                 <span className="text-2xl">🏠</span>
               </div>
@@ -305,7 +307,7 @@ const Dashboard: React.FC = () => {
           <div className="bg-white rounded-lg shadow-md p-6">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm font-medium text-gray-600 mb-1">Últimos 7 Días</p>
+                <p className="text-sm font-medium text-gray-600 mb-1">{t('stats.last7Days')}</p>
                 <p className="text-3xl font-bold text-gray-800">{last7Days}</p>
               </div>
               <div className="bg-[#1DAA6C]/10 rounded-full p-3">
@@ -332,7 +334,7 @@ const Dashboard: React.FC = () => {
                   d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
                 />
               </svg>
-              <h3 className="mt-2 text-sm font-medium text-gray-900">No hay quotes</h3>
+              <h3 className="mt-2 text-sm font-medium text-gray-900">{t('dashboard.noQuotes')}</h3>
               <p className="mt-1 text-sm text-gray-500">
                 {quotes.length === 0
                   ? 'No se han generado quotes aún.'
@@ -345,25 +347,25 @@ const Dashboard: React.FC = () => {
                 <thead className="bg-gray-50">
                   <tr>
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Fecha
+                      {t('dashboard.date')}
                     </th>
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Cliente
+                      {t('dashboard.client')}
                     </th>
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Email
+                      {t('dashboard.email')}
                     </th>
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Teléfono
+                      {t('dashboard.phone')}
                     </th>
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Apartamento
+                      {t('dashboard.apartment')}
                     </th>
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Status
+                      {t('dashboard.status')}
                     </th>
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Acciones
+                      {t('dashboard.actions')}
                     </th>
                   </tr>
                 </thead>
@@ -409,7 +411,7 @@ const Dashboard: React.FC = () => {
                           }}
                           className="px-3 py-1.5 text-sm font-medium text-white bg-[#1DAA6C] rounded-lg hover:bg-[#1a9559] transition-colors"
                         >
-                          Ver detalles
+                          {t('dashboard.viewDetails')}
                         </button>
                       </td>
                     </tr>

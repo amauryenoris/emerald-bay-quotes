@@ -1,11 +1,11 @@
 import React from 'react';
 import { Globe } from 'lucide-react';
-import { useLanguage, Language } from '../hooks/useLanguage';
+import { useLanguage } from '../context/LanguageContext';
 
 const LanguageSelector: React.FC = () => {
-  const { language, setLanguage, t } = useLanguage();
+  const { language, setLanguage } = useLanguage();
 
-  const handleLanguageChange = (newLanguage: Language) => {
+  const handleLanguageChange = (newLanguage: 'en' | 'es') => {
     setLanguage(newLanguage);
   };
 

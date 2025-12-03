@@ -1,11 +1,13 @@
 import React, { useState } from 'react'
 import { supabase } from '../lib/supabase'
+import { useLanguage } from '../context/LanguageContext'
 
 interface RegisterProps {
   onSwitchToLogin: () => void
 }
 
 const Register: React.FC<RegisterProps> = ({ onSwitchToLogin }) => {
+  const { t } = useLanguage()
   const [fullName, setFullName] = useState<string>('')
   const [email, setEmail] = useState<string>('')
   const [password, setPassword] = useState<string>('')
@@ -91,16 +93,15 @@ const Register: React.FC<RegisterProps> = ({ onSwitchToLogin }) => {
           </div>
           
           <div className="text-center">
-            <div className="text-green-600 text-xl mb-4">✓ Account created successfully!</div>
+            <div className="text-green-600 text-xl mb-4">✓ {t('auth.accountCreated')}</div>
             <p className="text-gray-600 mb-4">
-              Your account is pending admin approval.<br />
-              You will be able to log in once an administrator activates your account.
+              {t('auth.accountPending')}
             </p>
             <button
               onClick={onSwitchToLogin}
               className="w-full inline-flex justify-center items-center rounded-lg bg-[#1DAA6C] px-4 py-2.5 text-sm font-medium text-white shadow-md hover:bg-emerald-600 transition-colors"
             >
-              Go to Login
+              {t('auth.goToLogin')}
             </button>
           </div>
         </div>
@@ -120,7 +121,7 @@ const Register: React.FC<RegisterProps> = ({ onSwitchToLogin }) => {
           <h1 className="text-2xl font-semibold text-gray-800 text-center">
             Emerald Bay Quote System
           </h1>
-          <p className="text-sm text-gray-500 mt-1">Create Agent Account</p>
+          <p className="text-sm text-gray-500 mt-1">{t('auth.createAccount')}</p>
         </div>
 
         <form className="space-y-5" onSubmit={handleRegister}>
@@ -129,7 +130,7 @@ const Register: React.FC<RegisterProps> = ({ onSwitchToLogin }) => {
               htmlFor="fullName"
               className="block text-sm font-medium text-gray-700 mb-1"
             >
-              Full Name
+              {t('auth.fullName')}
             </label>
             <input
               id="fullName"
@@ -147,7 +148,7 @@ const Register: React.FC<RegisterProps> = ({ onSwitchToLogin }) => {
               htmlFor="email"
               className="block text-sm font-medium text-gray-700 mb-1"
             >
-              Email
+              {t('auth.email')}
             </label>
             <input
               id="email"
@@ -165,7 +166,7 @@ const Register: React.FC<RegisterProps> = ({ onSwitchToLogin }) => {
               htmlFor="password"
               className="block text-sm font-medium text-gray-700 mb-1"
             >
-              Password
+              {t('auth.password')}
             </label>
             <input
               id="password"
@@ -184,7 +185,7 @@ const Register: React.FC<RegisterProps> = ({ onSwitchToLogin }) => {
               htmlFor="confirmPassword"
               className="block text-sm font-medium text-gray-700 mb-1"
             >
-              Confirm Password
+              {t('auth.confirmPassword')}
             </label>
             <input
               id="confirmPassword"
@@ -208,17 +209,17 @@ const Register: React.FC<RegisterProps> = ({ onSwitchToLogin }) => {
             disabled={loading}
             className="w-full inline-flex justify-center items-center rounded-lg bg-[#1DAA6C] px-4 py-2.5 text-sm font-medium text-white shadow-md hover:bg-emerald-600 disabled:opacity-60 disabled:cursor-not-allowed transition-colors"
           >
-            {loading ? 'Creating Account...' : 'Create Account'}
+            {loading ? t('common.loading') : t('auth.register')}
           </button>
         </form>
 
         <div className="mt-6 text-center text-sm text-gray-600">
-          Already have an account?{' '}
+          {t('auth.alreadyHaveAccount')}{' '}
           <button
             onClick={onSwitchToLogin}
             className="text-[#1DAA6C] font-medium hover:text-emerald-600 hover:underline"
           >
-            Log in
+            {t('auth.loginHere')}
           </button>
         </div>
       </div>

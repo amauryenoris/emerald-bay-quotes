@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react'
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../context/AuthContext'
+import { useLanguage } from '../context/LanguageContext'
 
 interface UserProfile {
   id: string
@@ -12,6 +13,7 @@ interface UserProfile {
 }
 
 const UserManagement: React.FC = () => {
+  const { t } = useLanguage()
   const { user: currentUser } = useAuth()
   const [users, setUsers] = useState<UserProfile[]>([])
   const [loading, setLoading] = useState<boolean>(false)
@@ -136,7 +138,7 @@ const UserManagement: React.FC = () => {
                 : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
             }`}
           >
-            All
+            {t('users.all')}
           </button>
           <button
             onClick={() => setFilter('pending')}
@@ -146,7 +148,7 @@ const UserManagement: React.FC = () => {
                 : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
             }`}
           >
-            Pending
+            {t('admin.pending')}
           </button>
           <button
             onClick={() => setFilter('active')}
@@ -156,7 +158,7 @@ const UserManagement: React.FC = () => {
                 : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
             }`}
           >
-            Active
+            {t('admin.active')}
           </button>
           <button
             onClick={() => setFilter('inactive')}
@@ -166,7 +168,7 @@ const UserManagement: React.FC = () => {
                 : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
             }`}
           >
-            Inactive
+            {t('admin.inactive')}
           </button>
         </div>
       </div>
@@ -174,22 +176,22 @@ const UserManagement: React.FC = () => {
       {/* Stats Cards */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
         <div className="bg-white rounded-lg shadow-md p-6 border border-gray-200">
-          <h3 className="text-sm font-medium text-gray-500 mb-2">Total Users</h3>
+          <h3 className="text-sm font-medium text-gray-500 mb-2">{t('users.totalUsers')}</h3>
           <p className="text-3xl font-bold text-gray-800">{totalUsers}</p>
         </div>
         <div className="bg-white rounded-lg shadow-md p-6 border border-gray-200">
-          <h3 className="text-sm font-medium text-gray-500 mb-2">Pending Approval</h3>
+          <h3 className="text-sm font-medium text-gray-500 mb-2">{t('users.pendingApproval')}</h3>
           <p className="text-3xl font-bold text-yellow-600">{pendingCount}</p>
         </div>
         <div className="bg-white rounded-lg shadow-md p-6 border border-gray-200">
-          <h3 className="text-sm font-medium text-gray-500 mb-2">Active Users</h3>
+          <h3 className="text-sm font-medium text-gray-500 mb-2">{t('users.activeUsers')}</h3>
           <p className="text-3xl font-bold text-green-600">{activeCount}</p>
         </div>
       </div>
 
       {/* Tabla */}
       {loading ? (
-        <div className="text-center py-8 text-gray-500">Loading users...</div>
+        <div className="text-center py-8 text-gray-500">{t('common.loading')}</div>
       ) : (
         <div className="bg-white rounded-lg shadow-md overflow-hidden border border-gray-200">
           <div className="overflow-x-auto">
@@ -197,22 +199,22 @@ const UserManagement: React.FC = () => {
               <thead className="bg-gray-50">
                 <tr>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Name
+                    {t('admin.name')}
                   </th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Email
+                    {t('dashboard.email')}
                   </th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Role
+                    {t('users.role')}
                   </th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Status
+                    {t('dashboard.status')}
                   </th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Created At
+                    {t('users.createdAt')}
                   </th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Actions
+                    {t('dashboard.actions')}
                   </th>
                 </tr>
               </thead>
@@ -246,7 +248,7 @@ const UserManagement: React.FC = () => {
                                 : 'bg-blue-100 text-blue-800'
                             }`}
                           >
-                            {user.role}
+                            {user.role === 'admin' ? t('users.admin') : t('users.agent')}
                           </span>
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap">
@@ -257,7 +259,7 @@ const UserManagement: React.FC = () => {
                                 : 'bg-yellow-100 text-yellow-800'
                             }`}
                           >
-                            {user.is_active ? 'Active' : 'Pending'}
+                            {user.is_active ? t('admin.active') : t('admin.pending')}
                           </span>
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
@@ -272,14 +274,14 @@ const UserManagement: React.FC = () => {
                                   onClick={() => handleApprove(user.id)}
                                   className="px-3 py-1 bg-[#1DAA6C] text-white rounded hover:bg-emerald-600 transition-colors text-xs"
                                 >
-                                  Approve
+                                  {t('admin.approve')}
                                 </button>
                                 {!(isAdmin && isCurrentUser) && (
                                   <button
                                     onClick={() => handleDelete(user.id, user.email)}
                                     className="px-3 py-1 bg-red-500 text-white rounded hover:bg-red-600 transition-colors text-xs"
                                   >
-                                    Delete
+                                    {t('admin.delete')}
                                   </button>
                                 )}
                               </>
@@ -291,7 +293,7 @@ const UserManagement: React.FC = () => {
                                     onClick={() => handleReject(user.id)}
                                     className="px-3 py-1 bg-yellow-500 text-white rounded hover:bg-yellow-600 transition-colors text-xs"
                                   >
-                                    Deactivate
+                                    {t('admin.deactivate')}
                                   </button>
                                 )}
                                 {!isAdmin && !isCurrentUser && (
@@ -299,7 +301,7 @@ const UserManagement: React.FC = () => {
                                     onClick={() => handleDelete(user.id, user.email)}
                                     className="px-3 py-1 bg-red-500 text-white rounded hover:bg-red-600 transition-colors text-xs"
                                   >
-                                    Delete
+                                    {t('admin.delete')}
                                   </button>
                                 )}
                               </>

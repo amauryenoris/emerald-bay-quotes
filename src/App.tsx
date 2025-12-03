@@ -1,8 +1,7 @@
 import React, { useState, useMemo, useEffect } from 'react';
 import { Home, Calculator, FileDown, Users, Car, Heart, DollarSign, PawPrint, Tag } from 'lucide-react';
 import ReactGA from 'react-ga4';
-import { LanguageProvider, useLanguage } from './hooks/useLanguage';
-import LanguageSelector from './components/LanguageSelector';
+import { useLanguage } from './context/LanguageContext';
 import { useAuth } from './context/AuthContext';
 import Login from './components/Login';
 import Register from './components/Register';
@@ -31,7 +30,7 @@ interface RentalData {
 }
 
 const RentalQuoteApp: React.FC = () => {
-  const { t } = useLanguage();
+  const { language, setLanguage, t } = useLanguage();
   const { user, signOut } = useAuth();
   const [currentView, setCurrentView] = useState<'form' | 'dashboard' | 'admin'>('form');
   const [isAdmin, setIsAdmin] = useState<boolean>(false);
@@ -139,19 +138,19 @@ const RentalQuoteApp: React.FC = () => {
   }, [currentView, isAdmin]);
 
   const apartments = [
-    { id: 'keylime', name: t('apartment.keylime'), category: '1/1' },
-    { id: 'hibiscus', name: t('apartment.hibiscus'), category: '1/1' },
-    { id: 'pelican', name: t('apartment.pelican'), category: '1/1' },
-    { id: 'palm', name: t('apartment.palm'), category: '1/1' },
-    { id: 'coral', name: t('apartment.coral'), category: '1/1' },
-    { id: 'duval', name: t('apartment.duval'), category: '2/2' },
-    { id: 'seabreeze', name: t('apartment.seabreeze'), category: '2/2' },
-    { id: 'mangrove', name: t('apartment.mangrove'), category: '2/2' },
-    { id: 'sunset', name: t('apartment.sunset'), category: '2/2' },
-    { id: 'sandbar', name: t('apartment.sandbar'), category: '3/2' },
-    { id: 'reef', name: t('apartment.reef'), category: '3/2' },
-    { id: 'sunrise', name: t('apartment.sunrise'), category: '3/2' },
-    { id: 'hemingway', name: t('apartment.hemingway'), category: '3/2.5' },
+    { id: 'keylime', name: 'Keylime (1/1) - 826 SQF', category: '1/1' },
+    { id: 'hibiscus', name: 'Hibiscus (1/1) - 826 SQF', category: '1/1' },
+    { id: 'pelican', name: 'Pelican (1/1) - 766 SQF', category: '1/1' },
+    { id: 'palm', name: 'Palm (1/1) - 766 SQF', category: '1/1' },
+    { id: 'coral', name: 'Coral (1/1) - 769 SQF', category: '1/1' },
+    { id: 'duval', name: 'Duval (2/2) - 1,228 SQF', category: '2/2' },
+    { id: 'seabreeze', name: 'Seabreeze (2/2) - 1,103 SQF', category: '2/2' },
+    { id: 'mangrove', name: 'Mangrove (2/2) - 1,176 SQF', category: '2/2' },
+    { id: 'sunset', name: 'Sunset (2/2) - 1,228 SQF', category: '2/2' },
+    { id: 'sandbar', name: 'Sandbar (3/2) - 1,442 SQF', category: '3/2' },
+    { id: 'reef', name: 'Reef (3/2) - 1,511 SQF', category: '3/2' },
+    { id: 'sunrise', name: 'Sunrise (3/2) - 1,489 SQF', category: '3/2' },
+    { id: 'hemingway', name: 'Hemingway (3/2.5) - 1,644 SQF', category: '3/2.5' },
   ];
 
   const getPricingOptions = (apartmentId: string): number[] => {
@@ -383,7 +382,7 @@ const RentalQuoteApp: React.FC = () => {
         },
         metadata: {
           generatedAt: new Date().toISOString(),
-          language: t('lang'),
+          language: language,
         },
       }));
 
@@ -408,15 +407,15 @@ const RentalQuoteApp: React.FC = () => {
 
   const sendQuoteViaWebhook = async () => {
     if (!rentalData.apartment || !rentalData.monthlyRent || !rentalData.tenantName) {
-      alert(t('pdf.validation') + '\n' +
-        (!rentalData.apartment ? '• ' + t('pdf.validation.apartment') + '\n' : '') +
-        (!rentalData.monthlyRent ? '• ' + t('pdf.validation.rent') + '\n' : '') +
-        (!rentalData.tenantName ? '• ' + t('pdf.validation.tenant') : ''));
+      alert('Please complete the required information:\n' +
+        (!rentalData.apartment ? '• Select an apartment\n' : '') +
+        (!rentalData.monthlyRent ? '• Enter monthly rent\n' : '') +
+        (!rentalData.tenantName ? '• Enter tenant name' : ''));
       return;
     }
 
     if (!rentalData.tenantEmail) {
-      alert(t('pdf.send.emailRequired'));
+      alert('Please enter an email address to send the quote.');
       return;
     }
 
@@ -428,7 +427,7 @@ const RentalQuoteApp: React.FC = () => {
     setIsGeneratingPDF(true);
 
     try {
-      const pdfBlob = await generatePDFBlob();
+      const pdfBlob = await generatePDFBlob(language);
       const formData = { ...rentalData, prorationInfo: prorationInfo };
       await sendPDFViaWebhook(pdfBlob, formData);
 
@@ -467,7 +466,7 @@ const RentalQuoteApp: React.FC = () => {
         console.error('Exception details:', JSON.stringify(err, null, 2));
       }
 
-      alert(t('pdf.send.success') + rentalData.tenantEmail);
+      alert('Quote sent successfully to: ' + rentalData.tenantEmail);
       
       // Track email sent
       ReactGA.event({
@@ -483,10 +482,9 @@ const RentalQuoteApp: React.FC = () => {
     }
   };
 
-  const generatePDFBlob = async (): Promise<Blob> => {
-    const apartmentName = apartments.find(apt => apt.id === rentalData.apartment)?.name || t('common.notSelected');
+  const generatePDFBlob = async (pdfLanguage: 'en' | 'es' = language): Promise<Blob> => {
+    const apartmentName = apartments.find(apt => apt.id === rentalData.apartment)?.name || 'Not selected';
     const currentDate = new Date().toLocaleDateString();
-    const language = t('lang')?.toLowerCase?.() || 'en';
 
 
     const loadImageAsBase64 = (src: string): Promise<string> => {
@@ -607,7 +605,7 @@ const RentalQuoteApp: React.FC = () => {
       doc.setFontSize(16);
       doc.setTextColor(...primaryColor);
       doc.setFont('helvetica', 'bold');
-      doc.text(`${t('costs.apartment')}: ${apartmentName}`, 20, yPosition);
+      doc.text(`Apartment: ${apartmentName}`, 20, yPosition);
       
       yPosition += 10;
       doc.setFontSize(11);
@@ -715,7 +713,7 @@ const RentalQuoteApp: React.FC = () => {
             doc.setTextColor(0, 150, 0); // Verde
 
             const label =
-              language === 'es'
+              pdfLanguage === 'es'
                 ? `Descuento - ${special.name}:`
                 : `Discount - ${special.name}:`;
 
@@ -791,7 +789,7 @@ const RentalQuoteApp: React.FC = () => {
           if (special && special.apply_to_move_in && special.deposit_discount > 0) {
             doc.setTextColor(0, 150, 0); // Verde
             const label =
-              language === 'es'
+              pdfLanguage === 'es'
                 ? `Descuento en Depósito - ${special.name}:`
                 : `Deposit Discount - ${special.name}:`;
             doc.text(label, leftMargin, yPosition);
@@ -845,7 +843,7 @@ const RentalQuoteApp: React.FC = () => {
           if (special && special.apply_to_move_in && special.move_in_discount > 0) {
             doc.setTextColor(0, 150, 0); // Verde
             const label =
-              language === 'es'
+              pdfLanguage === 'es'
                 ? `Descuento de Mudanza - ${special.name}:`
                 : `Move-in Discount - ${special.name}:`;
             doc.text(label, leftMargin, yPosition);
@@ -1025,15 +1023,15 @@ const RentalQuoteApp: React.FC = () => {
 
   const generatePDF = () => {
     if (!rentalData.apartment || !rentalData.monthlyRent || !rentalData.tenantName.trim()) {
-      alert(t('pdf.validation') + '\n' +
-        (!rentalData.apartment ? `• ${t('pdf.validation.apartment')}\n` : '') +
-        (!rentalData.monthlyRent ? `• ${t('pdf.validation.rent')}\n` : '') +
-        (!rentalData.tenantName.trim() ? `• ${t('pdf.validation.tenant')}` : ''));
+      alert('Please complete the required information:\n' +
+        (!rentalData.apartment ? `• Select an apartment\n` : '') +
+        (!rentalData.monthlyRent ? `• Enter monthly rent\n` : '') +
+        (!rentalData.tenantName.trim() ? `• Enter tenant name` : ''));
       return;
     }
     
     // Track quote generation
-    const apartmentType = apartments.find(apt => apt.id === rentalData.apartment)?.name || t('common.notSelected');
+    const apartmentType = apartments.find(apt => apt.id === rentalData.apartment)?.name || 'Not selected';
     ReactGA.event({
       category: 'Quote',
       action: 'quote_generated',
@@ -1041,12 +1039,12 @@ const RentalQuoteApp: React.FC = () => {
       value: grandTotal,
     });
     
-    generatePDFBlob().then((pdfBlob) => {
+    generatePDFBlob(language).then((pdfBlob) => {
       const url = URL.createObjectURL(pdfBlob);
       const link = document.createElement('a');
       link.href = url;
       
-      const apartmentName = apartments.find(apt => apt.id === rentalData.apartment)?.name || t('common.notSelected');
+      const apartmentName = apartments.find(apt => apt.id === rentalData.apartment)?.name || 'Not selected';
       const filename = `Cotizacion_${apartmentName}_${rentalData.tenantName.replace(/\s+/g, '_')}_${new Date().toISOString().split('T')[0]}.pdf`;
       link.download = filename;
       
@@ -1079,8 +1077,8 @@ const RentalQuoteApp: React.FC = () => {
                 className="h-20 w-auto object-contain mr-4"
               />
               <div>
-                <h1 className="text-2xl font-bold text-gray-900">{t('header.title')}</h1>
-                <p className="text-gray-600">{t('header.subtitle')}</p>
+                <h1 className="text-2xl font-bold text-gray-900">Emerald Bay Quote System</h1>
+                <p className="text-gray-600">Rental community quote system</p>
               </div>
             </div>
             <div className="flex items-center gap-4">
@@ -1094,7 +1092,7 @@ const RentalQuoteApp: React.FC = () => {
                       : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
                   }`}
                 >
-                  Generar Quote
+                  {t('nav.generateQuote')}
                 </button>
                 <button
                   onClick={() => setCurrentView('dashboard')}
@@ -1104,7 +1102,7 @@ const RentalQuoteApp: React.FC = () => {
                       : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
                   }`}
                 >
-                  Ver Quotes
+                  {t('nav.viewQuotes')}
                 </button>
                 {isAdmin && (
                   <button
@@ -1115,7 +1113,7 @@ const RentalQuoteApp: React.FC = () => {
                         : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
                     }`}
                   >
-                    Admin
+                    {t('nav.admin')}
                   </button>
                 )}
               </div>
@@ -1126,13 +1124,35 @@ const RentalQuoteApp: React.FC = () => {
                   </p>
                 </div>
               )}
+              {/* Language Toggle */}
+              <div className="flex items-center space-x-2 border-l pl-4">
+                <button
+                  onClick={() => setLanguage('en')}
+                  className={`px-3 py-1 rounded ${
+                    language === 'en' 
+                      ? 'bg-green-600 text-white' 
+                      : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
+                  }`}
+                >
+                  EN
+                </button>
+                <button
+                  onClick={() => setLanguage('es')}
+                  className={`px-3 py-1 rounded ${
+                    language === 'es' 
+                      ? 'bg-green-600 text-white' 
+                      : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
+                  }`}
+                >
+                  ES
+                </button>
+              </div>
               <button
                 onClick={signOut}
                 className="text-xs px-3 py-1.5 rounded-full border border-gray-300 text-gray-700 hover:bg-gray-100 transition-colors"
               >
-                Cerrar Sesión
+                {t('auth.logout')}
               </button>
-              <LanguageSelector />
             </div>
           </div>
         </div>
@@ -1144,7 +1164,7 @@ const RentalQuoteApp: React.FC = () => {
             <div className="bg-white rounded-lg shadow-lg p-6 border border-gray-200">
               <div className="flex items-center gap-2 mb-4">
                 <Home className="w-5 h-5 text-emerald-primary" />
-                <h3 className="text-lg font-semibold text-gray-800">{t('apartment.title')}</h3>
+                <h3 className="text-lg font-semibold text-gray-800">Apartment Type</h3>
               </div>
               
               <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-5 gap-3">
@@ -1172,41 +1192,41 @@ const RentalQuoteApp: React.FC = () => {
             <div className="bg-white rounded-lg shadow-lg p-6 border border-gray-200">
               <div className="flex items-center gap-2 mb-6">
                 <Calculator className="w-6 h-6 text-emerald-primary" />
-                <h2 className="text-xl font-bold text-gray-800">{t('rental.title')}</h2>
+                <h2 className="text-xl font-bold text-gray-800">Rental Information</h2>
               </div>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div className="space-y-4">
-                  <h3 className="text-lg font-semibold text-gray-700 border-b pb-2">{t('rental.tenant.title')}</h3>
+                  <h3 className="text-lg font-semibold text-gray-700 border-b pb-2">Tenant Information</h3>
                   
                   <div>
                     <label className="block text-sm font-medium text-gray-600 mb-2">
-                      {t('rental.tenant.name')}
+                      {t('form.tenantName')}
                     </label>
                     <input
                       type="text"
                       value={rentalData.tenantName}
                       onChange={(e) => handleChange('tenantName', e.target.value)}
                       className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-primary focus:border-emerald-primary transition-colors"
-                      placeholder={t('rental.tenant.name.placeholder')}
+                      placeholder="Enter full name"
                     />
                   </div>
 
                   <div>
                     <label className="block text-sm font-medium text-gray-600 mb-2">
-                      {t('rental.tenant.email')}
+                      {t('form.tenantEmail')}
                     </label>
                     <input
                       type="email"
                       value={rentalData.tenantEmail}
                       onChange={(e) => handleChange('tenantEmail', e.target.value)}
                       className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-primary focus:border-emerald-primary transition-colors"
-                      placeholder={t('rental.tenant.email.placeholder')}
+                      placeholder="Enter email address"
                     />
                   </div>
 
                   <div>
                     <label className="block text-sm font-medium text-gray-600 mb-2">
-                       Phone Number
+                      {t('form.tenantPhone')}
                     </label>
                     <input
                       type="tel"
@@ -1221,27 +1241,27 @@ const RentalQuoteApp: React.FC = () => {
 
                   <div>
                     <label className="block text-sm font-medium text-gray-600 mb-2">
-                      {t('rental.tenant.unitNumber')}
+                      {t('form.unitNumber')}
                     </label>
                     <input
                       type="text"
                       value={rentalData.unitNumber}
                       onChange={(e) => handleChange('unitNumber', e.target.value)}
                       className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-primary focus:border-emerald-primary transition-colors"
-                      placeholder={t('rental.tenant.unitNumber.placeholder')}
+                      placeholder="e.g., 101, A-205, etc."
                     />
                   </div>
 
                   <div>
                     <label className="block text-sm font-medium text-gray-600 mb-2">
-                      {t('rental.tenant.leasingAgent')}
+                      Leasing Agent
                     </label>
                     <select
                       value={rentalData.leasingAgent}
                       onChange={(e) => handleChange('leasingAgent', e.target.value)}
                       className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-primary focus:border-emerald-primary transition-colors"
                     >
-                      <option value="">{t('rental.tenant.leasingAgent.placeholder')}</option>
+                      <option value="">Select leasing agent</option>
                       <option value="Amaury Noris">Amaury Noris</option>
                       <option value="Loretta Pozo">Loretta Pozo</option>
                       <option value="Marcela Castrillon">Marcela Castrillon</option>
@@ -1249,7 +1269,7 @@ const RentalQuoteApp: React.FC = () => {
                   </div>
                   <div>
                     <label className="block text-sm font-medium text-gray-600 mb-2">
-                      {t('rental.tenant.moveDate')}
+                      {t('form.moveInDate')}
                     </label>
                     <input
                       type="date"
@@ -1262,28 +1282,28 @@ const RentalQuoteApp: React.FC = () => {
 
                   <div>
                     <label className="block text-sm font-medium text-gray-600 mb-2">
-                      {t('rental.tenant.leaseTerm')}
+                      {t('form.leaseTerm')}
                     </label>
                     <select
                       value={rentalData.leaseTermMonths}
                       onChange={(e) => handleChange('leaseTermMonths', parseInt(e.target.value))}
                       className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-primary focus:border-emerald-primary transition-colors"
                     >
-                      <option value={6}>{t('rental.tenant.leaseTerm.6')}</option>
-                      <option value={12}>{t('rental.tenant.leaseTerm.12')}</option>
-                      <option value={18}>{t('rental.tenant.leaseTerm.18')}</option>
-                      <option value={24}>{t('rental.tenant.leaseTerm.24')}</option>
+                      <option value={6}>6 {t('common.months')}</option>
+                      <option value={12}>12 {t('common.months')}</option>
+                      <option value={18}>18 {t('common.months')}</option>
+                      <option value={24}>24 {t('common.months')}</option>
                     </select>
                   </div>
                 </div>
 
                 <div className="space-y-4">
-                  <h3 className="text-lg font-semibold text-gray-700 border-b pb-2">{t('financial.title')}</h3>
+                  <h3 className="text-lg font-semibold text-gray-700 border-b pb-2">Financial Details</h3>
                   
                   <div>
                     <label className="block text-sm font-medium text-gray-600 mb-2">
                       <DollarSign className="w-4 h-4 inline mr-1" />
-                      {t('financial.monthlyRent')}
+                      Monthly Rent ($)
                     </label>
                     
                     {showPriceSelector && availablePrices.length > 1 ? (
@@ -1319,7 +1339,7 @@ const RentalQuoteApp: React.FC = () => {
                         value={rentalData.monthlyRent || ''}
                         onChange={(e) => handleManualPriceChange(e.target.value)}
                         className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-primary focus:border-emerald-primary transition-colors"
-                        placeholder={t('financial.monthlyRent.placeholder')}
+                        placeholder="0.00"
                         min="0"
                         step="0.01"
                       />
@@ -1330,7 +1350,7 @@ const RentalQuoteApp: React.FC = () => {
                     <Users className="w-5 h-5 text-gray-500" />
                     <div className="flex-1">
                       <label className="block text-sm font-medium text-gray-600 mb-2">
-                        {t('financial.numberOfPersons')}
+                        {t('form.persons')}
                       </label>
                       <input
                         type="number"
@@ -1347,7 +1367,7 @@ const RentalQuoteApp: React.FC = () => {
                     <PawPrint className="w-5 h-5 text-gray-500" />
                     <div className="flex-1">
                       <label className="block text-sm font-medium text-gray-600 mb-2">
-                        {t('financial.numberOfPets')}
+                        {t('form.pets')}
                       </label>
                       <input
                         type="number"
@@ -1363,7 +1383,7 @@ const RentalQuoteApp: React.FC = () => {
               </div>
 
               <div className="mt-6 space-y-4">
-                <h3 className="text-lg font-semibold text-gray-700 border-b pb-2">{t('services.title')}</h3>
+                <h3 className="text-lg font-semibold text-gray-700 border-b pb-2">{t('form.additionalServices')}</h3>
                 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div className="flex items-center gap-3 p-4 bg-gray-50 rounded-lg transition-colors hover:bg-gray-100">
@@ -1377,7 +1397,7 @@ const RentalQuoteApp: React.FC = () => {
                           className="w-4 h-4 text-emerald-primary bg-gray-100 border-gray-300 rounded focus:ring-emerald-primary"
                         />
                         <span className="text-sm font-medium text-gray-700">
-                          {t('services.extraParking')}
+                          {t('form.extraParking')}
                         </span>
                       </label>
                     </div>
@@ -1394,7 +1414,7 @@ const RentalQuoteApp: React.FC = () => {
                           className="w-4 h-4 text-emerald-primary bg-gray-100 border-gray-300 rounded focus:ring-emerald-primary"
                         />
                         <span className="text-sm font-medium text-gray-700">
-                          {t('services.animalCleanup')}
+                          {t('form.petCleanup')}
                         </span>
                       </label>
                     </div>
@@ -1484,75 +1504,75 @@ const RentalQuoteApp: React.FC = () => {
               <div id="pdf-content">
                 <div className="flex items-center gap-2 mb-6">
                   <Calculator className="w-6 h-6 text-green-600" />
-                  <h2 className="text-xl font-bold text-gray-800">{t('costs.title')}</h2>
+                  <h2 className="text-xl font-bold text-gray-800">Cost Breakdown</h2>
                 </div>
 
                 <div className="mb-6 p-4 bg-emerald-light/20 rounded-lg">
-                  <h3 className="text-lg font-semibold text-gray-800">{t('costs.apartment')}</h3>
+                  <h3 className="text-lg font-semibold text-gray-800">Apartment</h3>
                   <p className="text-emerald-dark font-medium">
-                    {rentalData.apartment ? apartments.find(apt => apt.id === rentalData.apartment)?.name : t('common.notSelected')}
+                    {rentalData.apartment ? apartments.find(apt => apt.id === rentalData.apartment)?.name : 'Not selected'}
                   </p>
                 </div>
 
                 <div className="mb-6">
                   <h4 className="text-md font-semibold text-gray-700 mb-3 flex items-center gap-2">
                     <Home className="w-4 h-4 text-emerald-primary" />
-                    {t('costs.monthly')}
+                    Monthly Costs
                   </h4>
                   <div className="space-y-2 text-sm">
                     <div className="flex justify-between">
-                      <span>{t('costs.baseRent')}</span>
+                      <span>Base Rent</span>
                       <span className="font-medium">{formatCurrency(rentalData.monthlyRent)}</span>
                     </div>
                     {totalRentDiscount > 0 && (
                       <div className="flex justify-between text-yellow-600">
-                        <span className="text-xs">{t('costs.specialDiscount')}</span>
+                        <span className="text-xs">Special Discount</span>
                         <span className="font-medium text-xs">-{formatCurrency(totalRentDiscount)}</span>
                       </div>
                     )}
                     {rentalData.needsExtraParking && (
                       <div className="flex justify-between">
-                        <span>{t('costs.extraParking')}</span>
+                        <span>Extra Parking</span>
                         <span className="font-medium">{formatCurrency(extraParkingRent)}</span>
                       </div>
                     )}
                     {rentalData.numberOfPets > 0 && (
                       <div className="flex justify-between">
-                        <span>{t('costs.petRent')} ({rentalData.numberOfPets})</span>
+                        <span>Pet Rent ({rentalData.numberOfPets})</span>
                         <span className="font-medium">{formatCurrency(petRent)}</span>
                       </div>
                     )}
                     <div className="border-t pt-2 flex justify-between font-semibold">
-                      <span>{t('costs.monthlyTotal')}</span>
+                      <span>Monthly Total</span>
                       <span className="text-green-600">{formatCurrency(monthlyTotal)}</span>
                     </div>
                   </div>
                 </div>
 
                 <div className="mb-6">
-                  <h4 className="text-md font-semibold text-gray-700 mb-3">{t('costs.moveIn')}</h4>
+                  <h4 className="text-md font-semibold text-gray-700 mb-3">Move-in Charges</h4>
                   <div className="space-y-2 text-sm">
                     <div className="flex justify-between">
-                      <span>{t('costs.securityDeposit')}</span>
+                      <span>Security Deposit</span>
                       <span className="font-medium">{formatCurrency(baseSecurityDeposit)}</span>
                     </div>
                     {depositDiscountValue > 0 && (
                       <div className="flex justify-between text-yellow-600">
-                        <span className="text-xs">{t('costs.depositDiscount')}</span>
+                        <span className="text-xs">Deposit Discount</span>
                         <span className="font-medium text-xs">-{formatCurrency(depositDiscountValue)}</span>
                       </div>
                     )}
                     <div className="flex justify-between">
                       <span>
                         {prorationInfo.isProrated
-                          ? `${t('costs.proratedRent')} (${prorationInfo.remainingDays} ${t('costs.days')})`
-                          : t('costs.fullMonthRent')
+                          ? `Prorated Rent (${prorationInfo.remainingDays} days)`
+                          : 'Full Month Rent'
                         }
                       </span>
                       <span className="font-medium">{formatCurrency(prorationInfo.proratedRent)}</span>
                     </div>
                     <div className="flex justify-between">
-                      <span>{t('costs.applicationFee')} ({rentalData.numberOfPersons})</span>
+                      <span>Application Fee ({rentalData.numberOfPersons})</span>
                       <span className="font-medium">{formatCurrency(applicationFee)}</span>
                     </div>
 
@@ -1560,8 +1580,8 @@ const RentalQuoteApp: React.FC = () => {
                       <div className="flex justify-between">
                         <span>
                           {prorationInfo.isProrated
-                            ? `${t('costs.extraParking')} (${prorationInfo.remainingDays} ${t('costs.proration.days')})`
-                            : t('costs.extraParking')
+                            ? `Extra Parking (${prorationInfo.remainingDays} days)`
+                            : 'Extra Parking'
                           }
                         </span>
                         <span className="font-medium">{formatCurrency(prorationInfo.proratedParkingRent)}</span>
@@ -1572,8 +1592,8 @@ const RentalQuoteApp: React.FC = () => {
                       <div className="flex justify-between">
                         <span>
                           {prorationInfo.isProrated
-                            ? `${t('costs.monthly.petRent')} (${prorationInfo.remainingDays} ${t('costs.proration.days')})`
-                            : t('costs.monthly.petRent')
+                            ? `Pet Rent (${prorationInfo.remainingDays} days)`
+                            : 'Pet Rent'
                           }
                         </span>
                         <span className="font-medium">{formatCurrency(prorationInfo.proratedPetRent)}</span>
@@ -1582,7 +1602,7 @@ const RentalQuoteApp: React.FC = () => {
 
                     {rentalData.needsAnimalCleanup && (
                       <div className="flex justify-between">
-                        <span>{t('costs.animalCleanup')}</span>
+                        <span>Animal Clean Up (Non-Refundable)</span>
                         <span className="font-medium">{formatCurrency(animalCleanup)}</span>
                       </div>
                     )}
@@ -1596,7 +1616,7 @@ const RentalQuoteApp: React.FC = () => {
                     )}
 
                     <div className="border-t pt-2 flex justify-between font-semibold">
-                      <span>{t('costs.moveInTotal')}</span>
+                      <span>Move-in Total</span>
                       <span className="text-emerald-primary">{formatCurrency(moveInCharges)}</span>
                     </div>
                   </div>
@@ -1604,10 +1624,10 @@ const RentalQuoteApp: React.FC = () => {
 
                 <div className="bg-gradient-to-r from-emerald-light/20 to-emerald-primary/10 p-4 rounded-lg border-2 border-emerald-primary">
                   <div className="flex justify-between items-center">
-                    <span className="text-lg font-bold text-gray-800">{t('costs.grandTotal')}</span>
+                    <span className="text-lg font-bold text-gray-800">TOTAL TO PAY AT MOVE-IN</span>
                     <span className="text-2xl font-bold text-green-600">{formatCurrency(grandTotal)}</span>
                   </div>
-                  <p className="text-xs text-gray-600 mt-1">{t('costs.grandTotal.description')}</p>
+                  <p className="text-xs text-gray-600 mt-1">Includes first month rent + deposit + fees</p>
                 </div>
               </div>
               <div className="mt-6 space-y-3">
@@ -1617,7 +1637,7 @@ const RentalQuoteApp: React.FC = () => {
                   className="w-full flex items-center justify-center gap-2 bg-emerald-primary text-white px-4 py-3 rounded-lg hover:bg-emerald-dark disabled:bg-gray-300 disabled:cursor-not-allowed transition-colors font-medium"
                 >
                   <FileDown className="w-5 h-5" />
-                  {t('pdf.download')}
+                  {t('form.generateQuote')}
                 </button>
 
                 <button
@@ -1633,7 +1653,7 @@ const RentalQuoteApp: React.FC = () => {
                   ) : (
                     <>
                       <Heart className="w-5 h-5" />
-                      {t('pdf.send')}
+                      {t('form.sendEmail')}
                     </>
                   )}
                 </button>
@@ -1675,11 +1695,7 @@ const App: React.FC = () => {
     );
   }
 
-  return (
-    <LanguageProvider>
-      <RentalQuoteApp />
-    </LanguageProvider>
-  );
+  return <RentalQuoteApp />;
 };
 
 export default App;

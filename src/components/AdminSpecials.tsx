@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../context/AuthContext';
+import { useLanguage } from '../context/LanguageContext';
 
 interface Special {
   id: string;
@@ -33,6 +34,7 @@ const EMPTY_FORM: SpecialFormData = {
 };
 
 const AdminSpecials: React.FC = () => {
+  const { t } = useLanguage();
   const { user } = useAuth();
 
   const [specials, setSpecials] = useState<Special[]>([]);
@@ -294,7 +296,7 @@ const AdminSpecials: React.FC = () => {
               Gestión de Especiales
             </h1>
             <p className="text-gray-600">
-              Crea, edita y administra los especiales promocionales de Emerald Bay.
+              {t('admin.specialsSubtitle')}
             </p>
           </div>
           <button
@@ -302,7 +304,7 @@ const AdminSpecials: React.FC = () => {
             className="inline-flex items-center justify-center px-4 py-2 rounded-lg bg-[#1DAA6C] text-white font-semibold shadow-md hover:bg-emerald-dark transition-colors"
           >
             <span className="mr-2 text-lg">+</span>
-            Nuevo Especial
+            {t('admin.newSpecial')}
           </button>
         </div>
 
@@ -320,10 +322,10 @@ const AdminSpecials: React.FC = () => {
                 <thead className="bg-gray-50">
                   <tr>
                     <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Nombre
+                      {t('admin.name')}
                     </th>
                     <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Descripción
+                      {t('admin.description')}
                     </th>
                     <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                       Estado
@@ -363,7 +365,7 @@ const AdminSpecials: React.FC = () => {
                               : 'bg-gray-200 text-gray-700'
                           }`}
                         >
-                          {special.active ? 'Activo' : 'Inactivo'}
+                          {special.active ? t('admin.active') : t('admin.inactive')}
                         </span>
                       </td>
                       <td className="px-4 py-3 text-sm text-gray-700">
@@ -400,13 +402,13 @@ const AdminSpecials: React.FC = () => {
                           onClick={() => openEditForm(special)}
                           className="px-2 py-1 rounded border border-gray-300 text-gray-700 hover:bg-gray-100 text-xs"
                         >
-                          Editar
+                          {t('admin.edit')}
                         </button>
                         <button
                           onClick={() => handleDelete(special.id)}
                           className="px-2 py-1 rounded border border-red-200 text-red-600 hover:bg-red-50 text-xs"
                         >
-                          Eliminar
+                          {t('admin.delete')}
                         </button>
                         <button
                           onClick={() => handleToggleActive(special)}
@@ -434,7 +436,7 @@ const AdminSpecials: React.FC = () => {
               <div className="flex items-start justify-between mb-4">
                 <div>
                   <h2 className="text-xl font-semibold text-gray-800">
-                    {editingSpecial ? 'Editar Especial' : 'Nuevo Especial'}
+                    {editingSpecial ? t('admin.editSpecial') : t('admin.newSpecial')}
                   </h2>
                   <p className="text-sm text-gray-500">
                     Define los detalles del especial y sus descuentos.
@@ -457,7 +459,7 @@ const AdminSpecials: React.FC = () => {
               <div className="space-y-4 max-h-[60vh] overflow-y-auto pr-1">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Nombre *
+                    {t('admin.name')} *
                   </label>
                   <input
                     type="text"
@@ -471,7 +473,7 @@ const AdminSpecials: React.FC = () => {
 
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Descripción
+                    {t('admin.description')}
                   </label>
                   <textarea
                     name="description"
@@ -493,14 +495,14 @@ const AdminSpecials: React.FC = () => {
                     className="h-4 w-4 text-[#1DAA6C] border-gray-300 rounded focus:ring-[#1DAA6C]"
                   />
                   <label htmlFor="active" className="text-sm text-gray-700">
-                    Especial activo
+                    {t('admin.active')}
                   </label>
                 </div>
 
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">
-                      Fecha de inicio *
+                      {t('admin.startDate')} *
                     </label>
                     <input
                       type="date"
@@ -512,7 +514,7 @@ const AdminSpecials: React.FC = () => {
                   </div>
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">
-                      Fecha de fin
+                      {t('admin.endDate')}
                     </label>
                     <input
                       type="date"
@@ -530,7 +532,7 @@ const AdminSpecials: React.FC = () => {
                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">
-                      Descuento en renta
+                      {t('admin.rentDiscount')}
                     </label>
                     <div className="relative">
                       <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-sm">
@@ -549,7 +551,7 @@ const AdminSpecials: React.FC = () => {
 
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">
-                      Descuento en depósito
+                      {t('admin.depositDiscount')}
                     </label>
                     <div className="relative">
                       <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-sm">
@@ -568,7 +570,7 @@ const AdminSpecials: React.FC = () => {
 
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">
-                      Descuento en mudanza
+                      {t('admin.moveInDiscount')}
                     </label>
                     <div className="relative">
                       <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-sm">
@@ -589,7 +591,7 @@ const AdminSpecials: React.FC = () => {
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div className="sm:col-span-2">
                     <label className="block text-sm font-medium text-gray-700 mb-2">
-                      ¿Dónde se aplica este especial?
+                      {t('admin.applyTo')}
                     </label>
                     <div className="space-y-2 text-sm text-gray-700">
                       <label className="flex items-center">
@@ -604,7 +606,7 @@ const AdminSpecials: React.FC = () => {
                           }
                           className="mr-2 h-4 w-4 text-[#1DAA6C] border-gray-300 rounded focus:ring-[#1DAA6C]"
                         />
-                        <span>Monthly Costs (renta mensual)</span>
+                        <span>{t('admin.monthlyCosts')}</span>
                       </label>
 
                       <label className="flex items-center">
@@ -619,7 +621,7 @@ const AdminSpecials: React.FC = () => {
                           }
                           className="mr-2 h-4 w-4 text-[#1DAA6C] border-gray-300 rounded focus:ring-[#1DAA6C]"
                         />
-                        <span>Move-in Charges (depósito, costos de mudanza)</span>
+                        <span>{t('admin.moveInCharges')}</span>
                       </label>
                     </div>
                     <p className="text-xs text-gray-500 mt-1">
@@ -636,7 +638,7 @@ const AdminSpecials: React.FC = () => {
                   className="px-4 py-2 rounded-lg border border-gray-300 text-gray-700 text-sm hover:bg-gray-100"
                   disabled={saving}
                 >
-                  Cancelar
+                  {t('admin.cancel')}
                 </button>
                 <button
                   type="button"
@@ -644,7 +646,7 @@ const AdminSpecials: React.FC = () => {
                   disabled={saving}
                   className="px-4 py-2 rounded-lg bg-[#1DAA6C] text-white text-sm font-semibold shadow hover:bg-emerald-dark disabled:opacity-60 disabled:cursor-not-allowed"
                 >
-                  {saving ? 'Guardando...' : 'Guardar'}
+                  {saving ? t('common.loading') : t('admin.save')}
                 </button>
               </div>
             </div>

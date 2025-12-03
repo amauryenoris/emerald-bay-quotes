@@ -1,11 +1,13 @@
 import React, { useState, FormEvent } from 'react'
 import { supabase } from '../lib/supabase'
+import { useLanguage } from '../context/LanguageContext'
 
 interface LoginProps {
   onSwitchToRegister?: () => void
 }
 
 const Login: React.FC<LoginProps> = ({ onSwitchToRegister }) => {
+  const { t } = useLanguage()
   const [email, setEmail] = useState<string>('')
   const [password, setPassword] = useState<string>('')
   const [loading, setLoading] = useState<boolean>(false)
@@ -84,7 +86,7 @@ const Login: React.FC<LoginProps> = ({ onSwitchToRegister }) => {
           <h1 className="text-2xl font-semibold text-gray-800 text-center">
             Emerald Bay Quote System
           </h1>
-          <p className="text-sm text-gray-500 mt-1">Iniciar Sesión</p>
+          <p className="text-sm text-gray-500 mt-1">{t('auth.login')}</p>
         </div>
 
         <form className="space-y-5" onSubmit={handleLogin}>
@@ -93,7 +95,7 @@ const Login: React.FC<LoginProps> = ({ onSwitchToRegister }) => {
               htmlFor="email"
               className="block text-sm font-medium text-gray-700 mb-1"
             >
-              Email
+              {t('auth.email')}
             </label>
             <input
               id="email"
@@ -111,7 +113,7 @@ const Login: React.FC<LoginProps> = ({ onSwitchToRegister }) => {
               htmlFor="password"
               className="block text-sm font-medium text-gray-700 mb-1"
             >
-              Contraseña
+              {t('auth.password')}
             </label>
             <input
               id="password"
@@ -135,20 +137,20 @@ const Login: React.FC<LoginProps> = ({ onSwitchToRegister }) => {
             disabled={loading}
             className="w-full inline-flex justify-center items-center rounded-lg bg-[#1DAA6C] px-4 py-2.5 text-sm font-medium text-white shadow-md hover:bg-emerald-600 disabled:opacity-60 disabled:cursor-not-allowed transition-colors"
           >
-            {loading ? 'Iniciando sesión...' : 'Iniciar Sesión'}
+            {loading ? t('common.loading') : t('auth.login')}
           </button>
         </form>
 
         {onSwitchToRegister && (
           <div className="mt-4 text-center border-t pt-4">
             <p className="text-sm text-gray-600">
-              Don't have an account?{' '}
+              {t('auth.dontHaveAccount')}{' '}
               <button
                 type="button"
                 onClick={onSwitchToRegister}
                 className="text-green-600 hover:text-green-700 font-medium"
               >
-                Create agent account
+                {t('auth.registerHere')}
               </button>
             </p>
           </div>
