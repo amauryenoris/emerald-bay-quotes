@@ -1,7 +1,11 @@
 import React, { useState, FormEvent } from 'react'
 import { supabase } from '../lib/supabase'
 
-const Login: React.FC = () => {
+interface LoginProps {
+  onSwitchToRegister?: () => void
+}
+
+const Login: React.FC<LoginProps> = ({ onSwitchToRegister }) => {
   const [email, setEmail] = useState<string>('')
   const [password, setPassword] = useState<string>('')
   const [loading, setLoading] = useState<boolean>(false)
@@ -44,8 +48,31 @@ const Login: React.FC = () => {
           setError(error.message)
         }
         console.error('Supabase auth error:', error)
-      } else if (data?.user) {
-        // Login exitoso - el AuthContext manejará el cambio de estado
+        return
+      }
+
+      // Verificar si usuario está activo
+      if (data?.user) {
+        const { data: profile, error: profileError } = await supabase
+          .from('user_profiles')
+          .select('is_active')
+          .eq('id', data.user.id)
+          .single()
+        
+        if (profileError || !profile) {
+          setError('Unable to verify account status')
+          await supabase.auth.signOut()
+          return
+        }
+        
+        if (!profile.is_active) {
+          setError('Your account is pending admin approval. Please contact an administrator.')
+          await supabase.auth.signOut()
+          return
+        }
+
+        // Si llegamos aquí, está todo OK
+        // El AuthContext manejará el resto
         console.log('Login exitoso:', data.user.email)
       }
     } catch (err: any) {
@@ -126,6 +153,21 @@ const Login: React.FC = () => {
             {loading ? 'Iniciando sesión...' : 'Iniciar Sesión'}
           </button>
         </form>
+
+        {onSwitchToRegister && (
+          <div className="mt-4 text-center border-t pt-4">
+            <p className="text-sm text-gray-600">
+              Don't have an account?{' '}
+              <button
+                type="button"
+                onClick={onSwitchToRegister}
+                className="text-green-600 hover:text-green-700 font-medium"
+              >
+                Create agent account
+              </button>
+            </p>
+          </div>
+        )}
       </div>
     </div>
   )

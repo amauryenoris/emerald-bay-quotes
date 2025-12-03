@@ -5,8 +5,9 @@ import { LanguageProvider, useLanguage } from './hooks/useLanguage';
 import LanguageSelector from './components/LanguageSelector';
 import { useAuth } from './context/AuthContext';
 import Login from './components/Login';
+import Register from './components/Register';
 import Dashboard from './components/Dashboard';
-import AdminSpecials from './components/AdminSpecials';
+import AdminPanel from './components/AdminPanel';
 import { supabase } from './lib/supabase';
 
 // Webhook configuration - can be overridden with environment variables
@@ -34,6 +35,7 @@ const RentalQuoteApp: React.FC = () => {
   const { user, signOut } = useAuth();
   const [currentView, setCurrentView] = useState<'form' | 'dashboard' | 'admin'>('form');
   const [isAdmin, setIsAdmin] = useState<boolean>(false);
+  const [userRole, setUserRole] = useState<string>('');
   const [activeSpecials, setActiveSpecials] = useState<any[]>([]);
   const [loadingSpecials, setLoadingSpecials] = useState<boolean>(true);
   const [rentalData, setRentalData] = useState<RentalData>({
@@ -96,6 +98,7 @@ const RentalQuoteApp: React.FC = () => {
     const checkAdmin = async () => {
       if (!user) {
         setIsAdmin(false);
+        setUserRole('');
         return;
       }
 
@@ -109,14 +112,20 @@ const RentalQuoteApp: React.FC = () => {
         if (error) {
           console.error('Error fetching user role:', error);
           // Fallback a verificación por email
-          setIsAdmin(user.email === 'amauryenoris@gmail.com');
+          const isAdminEmail = user.email === 'amauryenoris@gmail.com';
+          setIsAdmin(isAdminEmail);
+          setUserRole(isAdminEmail ? 'admin' : '');
           return;
         }
 
-        setIsAdmin((data as { role?: string } | null)?.role === 'admin');
+        const role = (data as { role?: string } | null)?.role || '';
+        setUserRole(role);
+        setIsAdmin(role === 'admin');
       } catch (err) {
         console.error('Exception fetching user role:', err);
-        setIsAdmin(user.email === 'amauryenoris@gmail.com');
+        const isAdminEmail = user.email === 'amauryenoris@gmail.com';
+        setIsAdmin(isAdminEmail);
+        setUserRole(isAdminEmail ? 'admin' : '');
       }
     };
 
@@ -1634,7 +1643,9 @@ const RentalQuoteApp: React.FC = () => {
         </div>
         )}
         {currentView === 'dashboard' && <Dashboard />}
-        {currentView === 'admin' && isAdmin && <AdminSpecials />}
+        {currentView === 'admin' && userRole === 'admin' && (
+          <AdminPanel />
+        )}
       </main>
     </div>
   );
@@ -1642,6 +1653,7 @@ const RentalQuoteApp: React.FC = () => {
 
 const App: React.FC = () => {
   const { user, loading } = useAuth();
+  const [authView, setAuthView] = useState<'login' | 'register'>('login');
 
   if (loading) {
     return (
@@ -1652,7 +1664,15 @@ const App: React.FC = () => {
   }
 
   if (!user) {
-    return <Login />;
+    return (
+      <>
+        {authView === 'login' ? (
+          <Login onSwitchToRegister={() => setAuthView('register')} />
+        ) : (
+          <Register onSwitchToLogin={() => setAuthView('login')} />
+        )}
+      </>
+    );
   }
 
   return (
