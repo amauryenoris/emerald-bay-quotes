@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { Home, Calculator, FileDown, Users, Car, Heart, DollarSign, PawPrint, Tag } from 'lucide-react';
 import ReactGA from 'react-ga4';
 import { LanguageProvider, useLanguage } from './hooks/useLanguage';
@@ -6,6 +6,7 @@ import LanguageSelector from './components/LanguageSelector';
 import { useAuth } from './context/AuthContext';
 import Login from './components/Login';
 import Dashboard from './components/Dashboard';
+import AdminSpecials from './components/AdminSpecials';
 import { supabase } from './lib/supabase';
 
 // Webhook configuration - can be overridden with environment variables
@@ -18,8 +19,7 @@ interface RentalData {
   numberOfPets: number;
   needsExtraParking: boolean;
   needsAnimalCleanup: boolean;
-  hasSpecialDiscount: boolean;
-  hasSecondSpecialDiscount: boolean; // <-- NUEVO CAMPO EN EL ESTADO
+  selectedSpecials?: string[];
   tenantName: string;
   tenantEmail: string;
   tenantPhone: string;
@@ -32,7 +32,10 @@ interface RentalData {
 const RentalQuoteApp: React.FC = () => {
   const { t } = useLanguage();
   const { user, signOut } = useAuth();
-  const [currentView, setCurrentView] = useState<'form' | 'dashboard'>('form');
+  const [currentView, setCurrentView] = useState<'form' | 'dashboard' | 'admin'>('form');
+  const [isAdmin, setIsAdmin] = useState<boolean>(false);
+  const [activeSpecials, setActiveSpecials] = useState<any[]>([]);
+  const [loadingSpecials, setLoadingSpecials] = useState<boolean>(true);
   const [rentalData, setRentalData] = useState<RentalData>({
     apartment: '',
     monthlyRent: 0,
@@ -40,8 +43,7 @@ const RentalQuoteApp: React.FC = () => {
     numberOfPets: 0,
     needsExtraParking: false,
     needsAnimalCleanup: false,
-    hasSpecialDiscount: false,
-    hasSecondSpecialDiscount: false, // <-- Inicializado
+    selectedSpecials: [],
     tenantName: '',
     tenantEmail: '',
     tenantPhone: '',
@@ -53,6 +55,79 @@ const RentalQuoteApp: React.FC = () => {
   const [isGeneratingPDF, setIsGeneratingPDF] = useState(false);
   const [showPriceSelector, setShowPriceSelector] = useState(false);
   const [availablePrices, setAvailablePrices] = useState<number[]>([]);
+
+  useEffect(() => {
+    const fetchActiveSpecials = async () => {
+      try {
+        setLoadingSpecials(true);
+        const today = new Date().toISOString().split('T')[0];
+
+        const { data, error } = await supabase
+          .from('specials')
+          .select('*')
+          .eq('active', true)
+          .lte('start_date', today)
+          .or(`end_date.is.null,end_date.gte.${today}`)
+          .order('created_at', { ascending: true });
+
+        if (error) {
+          console.error('Error cargando especiales:', error);
+        } else {
+          console.log('✅ Especiales activos:', data);
+          setActiveSpecials(data || []);
+        }
+      } catch (err) {
+        console.error('Exception cargando especiales:', err);
+      } finally {
+        setLoadingSpecials(false);
+      }
+    };
+
+    fetchActiveSpecials();
+  }, []);
+
+  useEffect(() => {
+    if (activeSpecials.length > 0) {
+      console.log('Especiales activos:', activeSpecials);
+    }
+  }, [activeSpecials]);
+
+  useEffect(() => {
+    const checkAdmin = async () => {
+      if (!user) {
+        setIsAdmin(false);
+        return;
+      }
+
+      try {
+        const { data, error } = await supabase
+          .from('user_profiles')
+          .select('role')
+          .eq('id', user.id)
+          .single();
+
+        if (error) {
+          console.error('Error fetching user role:', error);
+          // Fallback a verificación por email
+          setIsAdmin(user.email === 'amauryenoris@gmail.com');
+          return;
+        }
+
+        setIsAdmin((data as { role?: string } | null)?.role === 'admin');
+      } catch (err) {
+        console.error('Exception fetching user role:', err);
+        setIsAdmin(user.email === 'amauryenoris@gmail.com');
+      }
+    };
+
+    checkAdmin();
+  }, [user]);
+
+  useEffect(() => {
+    if (currentView === 'admin' && !isAdmin) {
+      setCurrentView('form');
+    }
+  }, [currentView, isAdmin]);
 
   const apartments = [
     { id: 'keylime', name: t('apartment.keylime'), category: '1/1' },
@@ -87,15 +162,46 @@ const RentalQuoteApp: React.FC = () => {
     return pricingRules[category as keyof typeof pricingRules] || [];
   };
 
-  const monthlyRentDiscountValue = rentalData.hasSpecialDiscount ? 100 : 0;
-  const baseRent = rentalData.monthlyRent - monthlyRentDiscountValue;
+  // Calcular descuentos de especiales seleccionados
+  let monthlyRentDiscount = 0;
+  let moveInDepositDiscount = 0;
+  let moveInTotalDiscount = 0;
 
-  const depositDiscountValue = rentalData.hasSpecialDiscount ? 500 : 0;
+  if (rentalData.selectedSpecials && rentalData.selectedSpecials.length > 0) {
+    rentalData.selectedSpecials.forEach((specialId) => {
+      const special = activeSpecials.find((s) => s.id === specialId);
+      if (special) {
+        // Descuentos mensuales
+        if (special.apply_to_monthly && special.rent_discount > 0) {
+          monthlyRentDiscount += Number(special.rent_discount) || 0;
+        }
+
+        // Descuentos de move-in
+        if (special.apply_to_move_in) {
+          if (special.deposit_discount > 0) {
+            moveInDepositDiscount += Number(special.deposit_discount) || 0;
+          }
+          if (special.move_in_discount > 0) {
+            moveInTotalDiscount += Number(special.move_in_discount) || 0;
+          }
+        }
+      }
+    });
+  }
+
+  // Alias para usar en el resto del cálculo/costos existentes
+  const totalRentDiscount = monthlyRentDiscount;
+  const totalDepositDiscount = moveInDepositDiscount;
+  const totalMoveInDiscount = moveInTotalDiscount;
+
+  const baseRent = rentalData.monthlyRent - totalRentDiscount;
+
+  const depositDiscountValue = totalDepositDiscount;
   const baseSecurityDeposit = rentalData.monthlyRent;
   const effectiveSecurityDeposit = baseSecurityDeposit - depositDiscountValue;
 
-  // El valor del segundo descuento que se resta del total es $1700
-  const secondSpecialFullDiscount = rentalData.hasSecondSpecialDiscount ? 1700 : 0; 
+  // Descuento total aplicado al Move-In (suma de todos los especiales seleccionados)
+  const secondSpecialFullDiscount = totalMoveInDiscount; 
   
   const applicationFee = rentalData.numberOfPersons * 50;
   const animalCleanup = rentalData.needsAnimalCleanup ? 500 : 0;
@@ -151,7 +257,7 @@ const RentalQuoteApp: React.FC = () => {
       proratedPetRent: Math.round(proratedPetRent * 100) / 100,
       proratedParkingRent: Math.round(proratedParkingRent * 100) / 100,
     };
-  }, [rentalData.moveInDate, rentalData.monthlyRent, rentalData.hasSpecialDiscount, rentalData.numberOfPets, rentalData.needsExtraParking, baseRent]);
+  }, [rentalData.moveInDate, rentalData.monthlyRent, rentalData.numberOfPets, rentalData.needsExtraParking, baseRent]);
 
   const monthlyTotal = baseRent + extraParkingRent + petRent;
   // Move-in Charges restando el descuento de $1700
@@ -201,6 +307,25 @@ const RentalQuoteApp: React.FC = () => {
     const numValue = parseFloat(value) || 0;
     setRentalData(prev => ({ ...prev, monthlyRent: numValue }));
     setShowPriceSelector(false);
+  };
+
+  const handleSpecialToggle = (specialId: string, checked: boolean) => {
+    setRentalData((prev) => {
+      const current = prev.selectedSpecials || [];
+      if (checked) {
+        if (current.includes(specialId)) return prev;
+        const nextSelected = [...current, specialId];
+        console.log('Especiales seleccionados:', nextSelected);
+        return { ...prev, selectedSpecials: nextSelected };
+      } else {
+        const nextSelected = current.filter((id) => id !== specialId);
+        console.log('Especiales seleccionados:', nextSelected);
+        return {
+          ...prev,
+          selectedSpecials: nextSelected,
+        };
+      }
+    });
   };
 
   const isValidUSTelephone = (phone: string) => {
@@ -352,6 +477,8 @@ const RentalQuoteApp: React.FC = () => {
   const generatePDFBlob = async (): Promise<Blob> => {
     const apartmentName = apartments.find(apt => apt.id === rentalData.apartment)?.name || t('common.notSelected');
     const currentDate = new Date().toLocaleDateString();
+    const language = t('lang')?.toLowerCase?.() || 'en';
+
 
     const loadImageAsBase64 = (src: string): Promise<string> => {
       return new Promise((resolve, reject) => {
@@ -399,6 +526,9 @@ const RentalQuoteApp: React.FC = () => {
       const primaryColor = [29, 170, 108]; // Emerald Bay primary green #1DAA6C
       const textColor = [51, 51, 51];
       const lightGreen = [240, 253, 244];
+      const leftMargin = 20;
+      const rightAlign = 190;
+      const lineHeight = 6;
       
       let yPosition = 20;
       
@@ -479,7 +609,6 @@ const RentalQuoteApp: React.FC = () => {
       const col1X = 20; // Columna izquierda
       const col2X = 115; // Columna derecha
       let currentY = yPosition;
-      const lineHeight = 6;
       const date = new Date().toLocaleDateString();
       
       const col1ValueStart = 55; // Posición X fija para el valor de la columna 1
@@ -569,11 +698,30 @@ const RentalQuoteApp: React.FC = () => {
       doc.text('Base Rent', 20, yPosition);
       doc.text(formatCurrency(rentalData.monthlyRent), 190, yPosition, { align: 'right' });
       yPosition += 6;
-      
-      if (rentalData.hasSpecialDiscount) {
-        doc.text('Move-In Special Discount', 20, yPosition);
-        doc.text('-$100.00', 190, yPosition, { align: 'right' });
-        yPosition += 6;
+      // Descuentos mensuales por especiales seleccionados (cada uno en su propia línea, en verde)
+      if (rentalData.selectedSpecials && rentalData.selectedSpecials.length > 0) {
+        rentalData.selectedSpecials.forEach((specialId) => {
+          const special = activeSpecials.find((s) => s.id === specialId);
+          if (special && special.apply_to_monthly && special.rent_discount > 0) {
+            doc.setTextColor(0, 150, 0); // Verde
+
+            const label =
+              language === 'es'
+                ? `Descuento - ${special.name}:`
+                : `Discount - ${special.name}:`;
+
+            doc.text(label, leftMargin, yPosition);
+            doc.text(
+              `-$${Number(special.rent_discount).toFixed(2)}`,
+              rightAlign,
+              yPosition,
+              { align: 'right' }
+            );
+
+            doc.setTextColor(...textColor); // Volver a color de texto normal
+            yPosition += lineHeight;
+          }
+        });
       }
       
       if (rentalData.needsExtraParking) {
@@ -621,21 +769,33 @@ const RentalQuoteApp: React.FC = () => {
       doc.setFont('helvetica', 'normal');
       
       // --- LÍNEA 1: MUESTRA EL DEPÓSITO BASE COMPLETO ---
-      doc.text('Security Deposit', 20, yPosition);
-      doc.text(formatCurrency(baseSecurityDeposit), 190, yPosition, { align: 'right' }); // Muestra el valor completo
-      yPosition += 6;
-      
-      // --- LÍNEA 2: DESGLOSE DE DESCUENTO DE DEPÓSITO ---
-      if (rentalData.hasSecondSpecialDiscount) {
-          // Desglose de $500 del especial de $1700
-          doc.text('Deposit Move-In Special Discount (Before the 15th)', 20, yPosition);
-          doc.text(`-${formatCurrency(500)}`, 190, yPosition, { align: 'right' }); 
-          yPosition += 6;
-      } else if (rentalData.hasSpecialDiscount) {
-          // Descuento de $500 del primer especial (si el segundo no está activo)
-          doc.text('Deposit Move-In Special Discount', 20, yPosition);
-          doc.text(`-${formatCurrency(depositDiscountValue)}`, 190, yPosition, { align: 'right' }); 
-          yPosition += 6;
+      const securityDeposit = baseSecurityDeposit;
+
+      doc.text('Security Deposit', leftMargin, yPosition);
+      doc.text(formatCurrency(securityDeposit), rightAlign, yPosition, { align: 'right' });
+      yPosition += lineHeight;
+
+      // Descuentos de depósito de especiales seleccionados (líneas separadas)
+      if (rentalData.selectedSpecials && rentalData.selectedSpecials.length > 0) {
+        rentalData.selectedSpecials.forEach((specialId) => {
+          const special = activeSpecials.find((s) => s.id === specialId);
+          if (special && special.apply_to_move_in && special.deposit_discount > 0) {
+            doc.setTextColor(0, 150, 0); // Verde
+            const label =
+              language === 'es'
+                ? `Descuento en Depósito - ${special.name}:`
+                : `Deposit Discount - ${special.name}:`;
+            doc.text(label, leftMargin, yPosition);
+            doc.text(
+              `-$${Number(special.deposit_discount).toFixed(2)}`,
+              rightAlign,
+              yPosition,
+              { align: 'right' }
+            );
+            doc.setTextColor(...textColor); // Volver a color normal
+            yPosition += lineHeight;
+          }
+        });
       }
       
       if (prorationInfo.isProrated) {
@@ -668,15 +828,29 @@ const RentalQuoteApp: React.FC = () => {
         doc.text(formatCurrency(animalCleanup), 190, yPosition, { align: 'right' });
         yPosition += 6;
       }
-      
-      // --- LÍNEA 3: MUESTRA EL DESCUENTO ADICIONAL DE $1200 ---
-      if (rentalData.hasSecondSpecialDiscount) {
-        const additionalDiscount = 1200; // El remanente de $1700
-        doc.text('Move-in Special Discount (Before the 15th)', 20, yPosition);
-        doc.text(`-${formatCurrency(additionalDiscount)}`, 190, yPosition, { align: 'right' });
-        yPosition += 6;
+
+      // Descuentos generales de move-in (líneas separadas por especial)
+      if (rentalData.selectedSpecials && rentalData.selectedSpecials.length > 0) {
+        rentalData.selectedSpecials.forEach((specialId) => {
+          const special = activeSpecials.find((s) => s.id === specialId);
+          if (special && special.apply_to_move_in && special.move_in_discount > 0) {
+            doc.setTextColor(0, 150, 0); // Verde
+            const label =
+              language === 'es'
+                ? `Descuento de Mudanza - ${special.name}:`
+                : `Move-in Discount - ${special.name}:`;
+            doc.text(label, leftMargin, yPosition);
+            doc.text(
+              `-$${Number(special.move_in_discount).toFixed(2)}`,
+              rightAlign,
+              yPosition,
+              { align: 'right' }
+            );
+            doc.setTextColor(...textColor); // Volver a color normal
+            yPosition += lineHeight;
+          }
+        });
       }
-      // ---------------------------------------------
 
       yPosition += 3;
       doc.setLineWidth(0.5);
@@ -923,6 +1097,18 @@ const RentalQuoteApp: React.FC = () => {
                 >
                   Ver Quotes
                 </button>
+                {isAdmin && (
+                  <button
+                    onClick={() => setCurrentView('admin')}
+                    className={`px-4 py-2 rounded-lg font-medium transition-colors ${
+                      currentView === 'admin'
+                        ? 'bg-[#1DAA6C] text-white'
+                        : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
+                    }`}
+                  >
+                    Admin
+                  </button>
+                )}
               </div>
               {user && (
                 <div className="text-right text-sm">
@@ -943,7 +1129,7 @@ const RentalQuoteApp: React.FC = () => {
         </div>
       </header>
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        {currentView === 'form' ? (
+        {currentView === 'form' && (
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
           <div className="lg:col-span-2 space-y-6">
             <div className="bg-white rounded-lg shadow-lg p-6 border border-gray-200">
@@ -1205,47 +1391,80 @@ const RentalQuoteApp: React.FC = () => {
                     </div>
                   </div>
 
-                  <div className="flex items-center gap-3 p-4 bg-yellow-50 rounded-lg transition-colors hover:bg-yellow-100 border border-yellow-200">
-                    <Heart className="w-5 h-5 text-yellow-600" />
-                    <div className="flex-1">
-                      <label className="flex items-center gap-2 cursor-pointer">
-                        <input
-                          type="checkbox"
-                          checked={rentalData.hasSpecialDiscount}
-                          onChange={(e) => handleChange('hasSpecialDiscount', e.target.checked)}
-                          className="w-4 h-4 text-yellow-600 bg-yellow-100 border-yellow-300 rounded focus:ring-yellow-500"
-                        />
-                        <span className="text-sm font-medium text-yellow-800">
-                          {t('services.specialDiscount')}
-                        </span>
-                      </label>
-                      <p className="text-xs text-yellow-600 mt-1 ml-6">
-                        {t('services.specialDiscount.description')}
-                      </p>
+                  {/* Especiales desde Supabase */}
+                  {loadingSpecials ? (
+                    <div className="col-span-2 text-gray-500">
+                      Cargando especiales disponibles...
                     </div>
-                  </div>
-                  
-                  {/* NUEVO CHECKBOX DEL SEGUNDO ESPECIAL */}
-                  <div className="flex items-center gap-3 p-4 bg-yellow-50 rounded-lg transition-colors hover:bg-yellow-100 border border-yellow-200">
-                    <Tag className="w-5 h-5 text-yellow-600" />
-                    <div className="flex-1">
-                      <label className="flex items-center gap-2 cursor-pointer">
-                        <input
-                          type="checkbox"
-                          checked={rentalData.hasSecondSpecialDiscount}
-                          onChange={(e) => handleChange('hasSecondSpecialDiscount', e.target.checked)}
-                          className="w-4 h-4 text-yellow-600 bg-yellow-100 border-yellow-300 rounded focus:ring-yellow-500"
-                        />
-                        <span className="text-sm font-medium text-yellow-800">
-                          Move-in Special Discunt (before the 15th)
-                        </span>
-                      </label>
-                      <p className="text-xs text-yellow-600 mt-1 ml-6">
-                        Applies a fixed $1700 discount to the Move-In Total.
-                      </p>
+                  ) : activeSpecials.length > 0 ? (
+                    activeSpecials.map((special) => {
+                      const checked =
+                        rentalData.selectedSpecials?.includes(special.id) ||
+                        false;
+                      return (
+                        <div
+                          key={special.id}
+                          className="flex items-start space-x-3 p-4 bg-yellow-50 border border-yellow-200 rounded-lg col-span-2"
+                        >
+                          <input
+                            type="checkbox"
+                            id={`special-${special.id}`}
+                            checked={checked}
+                            onChange={(e) =>
+                              handleSpecialToggle(special.id, e.target.checked)
+                            }
+                            className="mt-1"
+                          />
+                          <label
+                            htmlFor={`special-${special.id}`}
+                            className="flex-1 cursor-pointer"
+                          >
+                            <div className="font-medium text-gray-900">
+                              {special.name}
+                            </div>
+                            {special.description && (
+                              <div className="text-sm text-gray-600 mt-1">
+                                {special.description}
+                              </div>
+                            )}
+                            <div className="text-sm text-yellow-700 mt-2">
+                              {special.apply_to_monthly &&
+                                special.rent_discount > 0 && (
+                                  <span className="mr-4">
+                                    Monthly Rent: -$
+                                    {Number(special.rent_discount).toFixed(2)}
+                                  </span>
+                                )}
+                              {special.apply_to_move_in && (
+                                <>
+                                  {special.deposit_discount > 0 && (
+                                    <span className="mr-4">
+                                      Deposit: -$
+                                      {Number(
+                                        special.deposit_discount
+                                      ).toFixed(2)}
+                                    </span>
+                                  )}
+                                  {special.move_in_discount > 0 && (
+                                    <span>
+                                      Move-in: -$
+                                      {Number(
+                                        special.move_in_discount
+                                      ).toFixed(2)}
+                                    </span>
+                                  )}
+                                </>
+                              )}
+                            </div>
+                          </label>
+                        </div>
+                      );
+                    })
+                  ) : (
+                    <div className="col-span-2 text-gray-500">
+                      No hay especiales activos en este momento
                     </div>
-                  </div>
-                  {/* FIN NUEVO CHECKBOX */}
+                  )}
                 </div>
               </div>
             </div>
@@ -1276,10 +1495,10 @@ const RentalQuoteApp: React.FC = () => {
                       <span>{t('costs.baseRent')}</span>
                       <span className="font-medium">{formatCurrency(rentalData.monthlyRent)}</span>
                     </div>
-                    {rentalData.hasSpecialDiscount && (
+                    {totalRentDiscount > 0 && (
                       <div className="flex justify-between text-yellow-600">
                         <span className="text-xs">{t('costs.specialDiscount')}</span>
-                        <span className="font-medium text-xs">-{formatCurrency(100)}</span>
+                        <span className="font-medium text-xs">-{formatCurrency(totalRentDiscount)}</span>
                       </div>
                     )}
                     {rentalData.needsExtraParking && (
@@ -1308,7 +1527,7 @@ const RentalQuoteApp: React.FC = () => {
                       <span>{t('costs.securityDeposit')}</span>
                       <span className="font-medium">{formatCurrency(baseSecurityDeposit)}</span>
                     </div>
-                    {rentalData.hasSpecialDiscount && (
+                    {depositDiscountValue > 0 && (
                       <div className="flex justify-between text-yellow-600">
                         <span className="text-xs">{t('costs.depositDiscount')}</span>
                         <span className="font-medium text-xs">-{formatCurrency(depositDiscountValue)}</span>
@@ -1359,24 +1578,13 @@ const RentalQuoteApp: React.FC = () => {
                       </div>
                     )}
                     
-                    {/* INICIO: DESGLOSE FINAL DEL SEGUNDO DESCUENTO EN MOVE-IN */}
-                    {rentalData.hasSecondSpecialDiscount && (
-                      <>
-                        {/* 1. Descuento de depósito de $500 (Si NO se usó el primer especial, lo mostramos aquí) */}
-                        {depositDiscountValue === 0 && (
-                            <div className="flex justify-between text-yellow-600">
-                              <span className="text-xs">Deposit Move-In Special Discount (Before the 15th)</span>
-                              <span className="font-medium text-xs">-{formatCurrency(500)}</span>
-                            </div>
-                        )}
-                        {/* 2. Descuento adicional de $1200 */}
-                        <div className="flex justify-between text-yellow-600">
-                          <span className="text-xs">Move-in Special Discount (Additional)</span>
-                          <span className="font-medium text-xs">-{formatCurrency(1200)}</span>
-                        </div>
-                      </>
+                    {/* Desglose final de descuentos de Move-In por especiales */}
+                    {secondSpecialFullDiscount > 0 && (
+                      <div className="flex justify-between text-yellow-600">
+                        <span className="text-xs">Move-in Specials Discount</span>
+                        <span className="font-medium text-xs">-{formatCurrency(secondSpecialFullDiscount)}</span>
+                      </div>
                     )}
-                    {/* FIN: DESGLOSE FINAL DEL SEGUNDO DESCUENTO */}
 
                     <div className="border-t pt-2 flex justify-between font-semibold">
                       <span>{t('costs.moveInTotal')}</span>
@@ -1424,9 +1632,9 @@ const RentalQuoteApp: React.FC = () => {
             </div>
           </div>
         </div>
-        ) : (
-          <Dashboard />
         )}
+        {currentView === 'dashboard' && <Dashboard />}
+        {currentView === 'admin' && isAdmin && <AdminSpecials />}
       </main>
     </div>
   );
