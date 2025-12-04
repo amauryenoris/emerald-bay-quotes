@@ -7,6 +7,7 @@ import React, {
 } from 'react'
 import type { User } from '@supabase/supabase-js'
 import { supabase } from '../lib/supabase'
+import { logError } from '../utils/errorHandler'
 
 interface UserProfile {
   id: string
@@ -45,7 +46,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         .single()
       
       if (error) {
-        console.error('Error loading profile:', error)
+        logError(error, 'AuthContext - loadUserProfile')
         setUserProfile(null)
         setUserRole(null)
         return
@@ -53,7 +54,10 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       
       // Verificar si está activo y no eliminado
       if (!data.is_active || data.deleted_at) {
-        console.log('User is inactive or deleted, logging out')
+        logError(
+          new Error('User is inactive or deleted'),
+          'AuthContext - loadUserProfile - User inactive'
+        )
         await supabase.auth.signOut()
         setUserProfile(null)
         setUserRole(null)
@@ -64,7 +68,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       setUserProfile(data)
       setUserRole(data.role)
     } catch (err) {
-      console.error('Error loading user profile:', err)
+      logError(err, 'AuthContext - loadUserProfile - Exception')
     }
   }
 
@@ -103,7 +107,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 
         subscription = authSubscription
       } catch (error) {
-        console.error('Error initializing auth:', error)
+        logError(error, 'AuthContext - initAuth')
         if (!isMounted) return
         setLoading(false)
       }
@@ -119,13 +123,49 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     }
   }, [])
 
+  // Verificación continua de is_active cada 5 minutos
+  useEffect(() => {
+    if (!user) return
+
+    // Verificar is_active cada 5 minutos
+    const interval = setInterval(async () => {
+      try {
+        const { data: profile, error } = await supabase
+          .from('user_profiles')
+          .select('is_active, deleted_at')
+          .eq('id', user.id)
+          .single()
+
+        if (error) {
+          logError(error, 'AuthContext - Continuous is_active check')
+          return
+        }
+
+        // Si el usuario está desactivado o eliminado, cerrar sesión
+        if (profile && (!profile.is_active || profile.deleted_at)) {
+          logError(
+            new Error('User deactivated or deleted during session'),
+            'AuthContext - User status changed'
+          )
+          await supabase.auth.signOut()
+          setUserProfile(null)
+          setUserRole(null)
+        }
+      } catch (err) {
+        logError(err, 'AuthContext - Continuous is_active check - Exception')
+      }
+    }, 5 * 60 * 1000) // 5 minutos
+
+    return () => clearInterval(interval)
+  }, [user])
+
   const signOut = async () => {
     try {
       await supabase.auth.signOut()
       setUserProfile(null)
       setUserRole(null)
     } catch (error) {
-      console.error('Error signing out:', error)
+      logError(error, 'AuthContext - signOut')
     }
   }
 

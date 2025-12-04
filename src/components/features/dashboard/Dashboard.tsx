@@ -1,7 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { supabase } from '../lib/supabase';
-import { useAuth } from '../context/AuthContext';
-import { useLanguage } from '../context/LanguageContext';
+import { supabase } from '../../../lib/supabase';
+import { useLanguage } from '../../../context/LanguageContext';
 import QuoteDetailsModal from './QuoteDetailsModal';
 
 interface Quote {

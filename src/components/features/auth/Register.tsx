@@ -1,6 +1,9 @@
 import React, { useState } from 'react'
-import { supabase } from '../lib/supabase'
-import { useLanguage } from '../context/LanguageContext'
+import { supabase } from '../../../lib/supabase'
+import { useLanguage } from '../../../context/LanguageContext'
+import { isValidEmail } from '../../../utils/validators'
+import { sanitizeText } from '../../../utils/sanitize'
+import { getUserFriendlyError, logError } from '../../../utils/errorHandler'
 
 interface RegisterProps {
   onSwitchToLogin: () => void
@@ -19,7 +22,12 @@ const Register: React.FC<RegisterProps> = ({ onSwitchToLogin }) => {
   const handleRegister = async (e: React.FormEvent) => {
     e.preventDefault()
     
-    // Validaciones
+    // Validate email format
+    if (!isValidEmail(email)) {
+      setError('Invalid email format')
+      return
+    }
+    
     if (password !== confirmPassword) {
       setError('Passwords do not match')
       return
@@ -39,7 +47,6 @@ const Register: React.FC<RegisterProps> = ({ onSwitchToLogin }) => {
     setError(null)
     
     try {
-      // Registrar en Supabase Auth
       const { data: authData, error: authError } = await supabase.auth.signUp({
         email,
         password,
@@ -58,20 +65,19 @@ const Register: React.FC<RegisterProps> = ({ onSwitchToLogin }) => {
           .from('user_profiles')
           .insert({
             id: authData.user.id,
-            email: email,
-            full_name: fullName,
+            email: email, // Email already validated
+            full_name: sanitizeText(fullName),
             role: 'agent',
             is_active: false
           })
         
         if (profileError) throw profileError
         
-        console.log('✅ Registration successful - pending approval')
         setSuccess(true)
       }
     } catch (err: any) {
-      console.error('Registration error:', err)
-      setError(err.message || 'Registration failed')
+      logError(err, 'Register')
+      setError(getUserFriendlyError(err))
     } finally {
       setLoading(false)
     }

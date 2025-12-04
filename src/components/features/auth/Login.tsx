@@ -1,6 +1,8 @@
-import React, { useState, FormEvent } from 'react'
-import { supabase } from '../lib/supabase'
-import { useLanguage } from '../context/LanguageContext'
+import React, { useState } from 'react'
+import { supabase } from '../../../lib/supabase'
+import { useLanguage } from '../../../context/LanguageContext'
+import { isValidEmail } from '../../../utils/validators'
+import { getUserFriendlyError, logError } from '../../../utils/errorHandler'
 
 interface LoginProps {
   onSwitchToRegister?: () => void
@@ -18,20 +20,31 @@ const Login: React.FC<LoginProps> = ({ onSwitchToRegister }) => {
     setLoading(true)
     setError(null)
     
+    // Validate email format
+    if (!isValidEmail(email)) {
+      setError('Invalid email format')
+      setLoading(false)
+      return
+    }
+    
     try {
-      // 1. Intentar login
       const { data: authData, error: authError } = await supabase.auth.signInWithPassword({
         email,
         password
       })
       
       if (authError) {
-        setError(authError.message)
+        logError(authError, 'Login - Authentication')
+        setError(getUserFriendlyError(authError))
+        setLoading(false)
         return
       }
       
       if (!authData.user) {
-        setError('Login failed')
+        const error = new Error('Login failed: No user data returned')
+        logError(error, 'Login - No user data')
+        setError(getUserFriendlyError(error))
+        setLoading(false)
         return
       }
       
@@ -43,9 +56,10 @@ const Login: React.FC<LoginProps> = ({ onSwitchToRegister }) => {
         .single()
       
       if (profileError) {
-        console.error('Profile error:', profileError)
+        logError(profileError, 'Login - Profile verification')
         setError('Unable to verify account status')
         await supabase.auth.signOut()
+        setLoading(false)
         return
       }
       
@@ -67,8 +81,8 @@ const Login: React.FC<LoginProps> = ({ onSwitchToRegister }) => {
       // El AuthContext detectará el login y actualizará el estado
       
     } catch (err: any) {
-      console.error('Login error:', err)
-      setError(err.message || 'Login failed')
+      logError(err, 'Login')
+      setError(getUserFriendlyError(err))
     } finally {
       setLoading(false)
     }
@@ -161,5 +175,4 @@ const Login: React.FC<LoginProps> = ({ onSwitchToRegister }) => {
 }
 
 export default Login
-
 

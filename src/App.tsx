@@ -1,16 +1,22 @@
 import React, { useState, useMemo, useEffect } from 'react';
-import { Home, Calculator, FileDown, Users, Car, Heart, DollarSign, PawPrint, Tag } from 'lucide-react';
+import { Home, Calculator, FileDown, Users, Car, Heart, DollarSign, PawPrint } from 'lucide-react';
 import ReactGA from 'react-ga4';
 import { useLanguage } from './context/LanguageContext';
 import { useAuth } from './context/AuthContext';
-import Login from './components/Login';
-import Register from './components/Register';
-import Dashboard from './components/Dashboard';
-import AdminPanel from './components/AdminPanel';
+import Login from './components/features/auth/Login';
+import Register from './components/features/auth/Register';
+import Dashboard from './components/features/dashboard/Dashboard';
+import AdminPanel from './components/features/admin/AdminPanel';
 import { supabase } from './lib/supabase';
+import { sanitizeText } from './utils/sanitize';
+import { logError } from './utils/errorHandler';
 
-// Webhook configuration - can be overridden with environment variables
-const WEBHOOK_URL = import.meta.env.VITE_WEBHOOK_URL || 'https://n8n.srv894089.hstgr.cloud/webhook/4723cc4d-53ba-4390-862b-602a7c5c010c';
+// Webhook configuration - REQUIRED environment variable
+const WEBHOOK_URL = import.meta.env.VITE_WEBHOOK_URL;
+
+if (!WEBHOOK_URL) {
+  throw new Error('VITE_WEBHOOK_URL environment variable is required');
+}
 
 interface RentalData {
   apartment: string;
@@ -72,13 +78,12 @@ const RentalQuoteApp: React.FC = () => {
           .order('created_at', { ascending: true });
 
         if (error) {
-          console.error('Error cargando especiales:', error);
+          logError(error, 'fetchActiveSpecials');
         } else {
-          console.log('✅ Especiales activos:', data);
           setActiveSpecials(data || []);
         }
       } catch (err) {
-        console.error('Exception cargando especiales:', err);
+        logError(err, 'fetchActiveSpecials - Exception');
       } finally {
         setLoadingSpecials(false);
       }
@@ -87,11 +92,6 @@ const RentalQuoteApp: React.FC = () => {
     fetchActiveSpecials();
   }, []);
 
-  useEffect(() => {
-    if (activeSpecials.length > 0) {
-      console.log('Especiales activos:', activeSpecials);
-    }
-  }, [activeSpecials]);
 
   useEffect(() => {
     const checkAdmin = async () => {
@@ -109,11 +109,10 @@ const RentalQuoteApp: React.FC = () => {
           .single();
 
         if (error) {
-          console.error('Error fetching user role:', error);
-          // Fallback a verificación por email
-          const isAdminEmail = user.email === 'amauryenoris@gmail.com';
-          setIsAdmin(isAdminEmail);
-          setUserRole(isAdminEmail ? 'admin' : '');
+          logError(error, 'checkAdmin - fetchUserRole');
+          // Si hay error al obtener el rol, no se asume admin por seguridad
+          setIsAdmin(false);
+          setUserRole('');
           return;
         }
 
@@ -121,10 +120,10 @@ const RentalQuoteApp: React.FC = () => {
         setUserRole(role);
         setIsAdmin(role === 'admin');
       } catch (err) {
-        console.error('Exception fetching user role:', err);
-        const isAdminEmail = user.email === 'amauryenoris@gmail.com';
-        setIsAdmin(isAdminEmail);
-        setUserRole(isAdminEmail ? 'admin' : '');
+        logError(err, 'checkAdmin - Exception');
+        // Si hay excepción al obtener el rol, no se asume admin por seguridad
+        setIsAdmin(false);
+        setUserRole('');
       }
     };
 
@@ -197,19 +196,9 @@ const RentalQuoteApp: React.FC = () => {
     });
   }
 
-  // Alias para usar en el resto del cálculo/costos existentes
-  const totalRentDiscount = monthlyRentDiscount;
-  const totalDepositDiscount = moveInDepositDiscount;
-  const totalMoveInDiscount = moveInTotalDiscount;
-
-  const baseRent = rentalData.monthlyRent - totalRentDiscount;
-
-  const depositDiscountValue = totalDepositDiscount;
+  const baseRent = rentalData.monthlyRent - monthlyRentDiscount;
   const baseSecurityDeposit = rentalData.monthlyRent;
-  const effectiveSecurityDeposit = baseSecurityDeposit - depositDiscountValue;
-
-  // Descuento total aplicado al Move-In (suma de todos los especiales seleccionados)
-  const secondSpecialFullDiscount = totalMoveInDiscount; 
+  const effectiveSecurityDeposit = baseSecurityDeposit - moveInDepositDiscount; 
   
   const applicationFee = rentalData.numberOfPersons * 50;
   const animalCleanup = rentalData.needsAnimalCleanup ? 500 : 0;
@@ -268,8 +257,7 @@ const RentalQuoteApp: React.FC = () => {
   }, [rentalData.moveInDate, rentalData.monthlyRent, rentalData.numberOfPets, rentalData.needsExtraParking, baseRent]);
 
   const monthlyTotal = baseRent + extraParkingRent + petRent;
-  // Move-in Charges restando el descuento de $1700
-  const moveInCharges = effectiveSecurityDeposit + prorationInfo.proratedRent + applicationFee + animalCleanup + prorationInfo.proratedPetRent + prorationInfo.proratedParkingRent - secondSpecialFullDiscount;
+  const moveInCharges = effectiveSecurityDeposit + prorationInfo.proratedRent + applicationFee + animalCleanup + prorationInfo.proratedPetRent + prorationInfo.proratedParkingRent - moveInTotalDiscount;
   const grandTotal = moveInCharges;
   
   const formatCurrency = (amount: number) => {
@@ -323,11 +311,9 @@ const RentalQuoteApp: React.FC = () => {
       if (checked) {
         if (current.includes(specialId)) return prev;
         const nextSelected = [...current, specialId];
-        console.log('Especiales seleccionados:', nextSelected);
         return { ...prev, selectedSpecials: nextSelected };
       } else {
         const nextSelected = current.filter((id) => id !== specialId);
-        console.log('Especiales seleccionados:', nextSelected);
         return {
           ...prev,
           selectedSpecials: nextSelected,
@@ -396,11 +382,10 @@ const RentalQuoteApp: React.FC = () => {
       }
 
       const result = await response.text();
-      console.log('Webhook response:', result);
       
       return { success: true, response: result };
     } catch (error) {
-      console.error('Error sending PDF via webhook:', error);
+      logError(error, 'sendPDFViaWebhook');
       throw error;
     }
   };
@@ -433,12 +418,13 @@ const RentalQuoteApp: React.FC = () => {
 
       // Guardar en Supabase (no debe romper el flujo si falla)
       try {
-        const { error: dbError } = await supabase.from('quotes').insert({
-          tenant_name: rentalData.tenantName,
-          tenant_email: rentalData.tenantEmail,
-          tenant_phone: rentalData.tenantPhone,
-          apartment_type: rentalData.apartment,
-          unit_number: rentalData.unitNumber || null,
+        // Sanitize all text inputs before saving to database
+        const sanitizedData = {
+          tenant_name: sanitizeText(rentalData.tenantName),
+          tenant_email: rentalData.tenantEmail, // Email already validated
+          tenant_phone: sanitizeText(rentalData.tenantPhone || ''),
+          apartment_type: sanitizeText(rentalData.apartment),
+          unit_number: rentalData.unitNumber ? sanitizeText(rentalData.unitNumber) : null,
           monthly_rent: baseRent,
           move_in_date: rentalData.moveInDate || null,
           lease_term_months: rentalData.leaseTermMonths,
@@ -451,19 +437,15 @@ const RentalQuoteApp: React.FC = () => {
           move_in_total: moveInCharges,
           grand_total: moveInCharges + monthlyTotal,
           status: 'sent',
-        });
+        };
+        
+        const { error: dbError } = await supabase.from('quotes').insert(sanitizedData);
 
         if (dbError) {
-          console.error('❌ Error guardando en Supabase:');
-          console.error('Message:', dbError.message);
-          console.error('Details:', dbError.details);
-          console.error('Hint:', dbError.hint);
-          console.error('Code:', dbError.code);
-          console.error('Full error:', JSON.stringify(dbError, null, 2));
+          logError(dbError, 'saveQuoteToSupabase');
         }
       } catch (err) {
-        console.error('❌ Exception al guardar quote:', err);
-        console.error('Exception details:', JSON.stringify(err, null, 2));
+        logError(err, 'saveQuoteToSupabase - Exception');
       }
 
       alert('Quote sent successfully to: ' + rentalData.tenantEmail);
@@ -475,7 +457,7 @@ const RentalQuoteApp: React.FC = () => {
         label: rentalData.tenantEmail,
       });
     } catch (error) {
-      console.error('Error generating or sending PDF:', error);
+      logError(error, 'sendQuoteViaWebhook');
       alert('Error al generar el PDF. Por favor intente de nuevo.');
     } finally {
       setIsGeneratingPDF(false);
@@ -484,7 +466,6 @@ const RentalQuoteApp: React.FC = () => {
 
   const generatePDFBlob = async (pdfLanguage: 'en' | 'es' = language): Promise<Blob> => {
     const apartmentName = apartments.find(apt => apt.id === rentalData.apartment)?.name || 'Not selected';
-    const currentDate = new Date().toLocaleDateString();
 
 
     const loadImageAsBase64 = (src: string): Promise<string> => {
@@ -532,7 +513,6 @@ const RentalQuoteApp: React.FC = () => {
     const generatePDFWithLogo = (doc: any, logoBase64: string | null, qrCodeDataURL: string | null) => {
       const primaryColor = [29, 170, 108]; // Emerald Bay primary green #1DAA6C
       const textColor = [51, 51, 51];
-      const lightGreen = [240, 253, 244];
       const leftMargin = 20;
       const rightAlign = 190;
       const lineHeight = 6;
@@ -775,11 +755,8 @@ const RentalQuoteApp: React.FC = () => {
       doc.setTextColor(...textColor);
       doc.setFont('helvetica', 'normal');
       
-      // --- LÍNEA 1: MUESTRA EL DEPÓSITO BASE COMPLETO ---
-      const securityDeposit = baseSecurityDeposit;
-
       doc.text('Security Deposit', leftMargin, yPosition);
-      doc.text(formatCurrency(securityDeposit), rightAlign, yPosition, { align: 'right' });
+      doc.text(formatCurrency(baseSecurityDeposit), rightAlign, yPosition, { align: 'right' });
       yPosition += lineHeight;
 
       // Descuentos de depósito de especiales seleccionados (líneas separadas)
@@ -1082,7 +1059,6 @@ const RentalQuoteApp: React.FC = () => {
               </div>
             </div>
             <div className="flex items-center gap-4">
-              {/* Botones de navegación */}
               <div className="flex items-center gap-2">
                 <button
                   onClick={() => setCurrentView('form')}
@@ -1124,7 +1100,6 @@ const RentalQuoteApp: React.FC = () => {
                   </p>
                 </div>
               )}
-              {/* Language Toggle */}
               <div className="flex items-center space-x-2 border-l pl-4">
                 <button
                   onClick={() => setLanguage('en')}
@@ -1524,10 +1499,10 @@ const RentalQuoteApp: React.FC = () => {
                       <span>Base Rent</span>
                       <span className="font-medium">{formatCurrency(rentalData.monthlyRent)}</span>
                     </div>
-                    {totalRentDiscount > 0 && (
+                    {monthlyRentDiscount > 0 && (
                       <div className="flex justify-between text-yellow-600">
                         <span className="text-xs">Special Discount</span>
-                        <span className="font-medium text-xs">-{formatCurrency(totalRentDiscount)}</span>
+                        <span className="font-medium text-xs">-{formatCurrency(monthlyRentDiscount)}</span>
                       </div>
                     )}
                     {rentalData.needsExtraParking && (
@@ -1556,10 +1531,10 @@ const RentalQuoteApp: React.FC = () => {
                       <span>Security Deposit</span>
                       <span className="font-medium">{formatCurrency(baseSecurityDeposit)}</span>
                     </div>
-                    {depositDiscountValue > 0 && (
+                    {moveInDepositDiscount > 0 && (
                       <div className="flex justify-between text-yellow-600">
                         <span className="text-xs">Deposit Discount</span>
-                        <span className="font-medium text-xs">-{formatCurrency(depositDiscountValue)}</span>
+                        <span className="font-medium text-xs">-{formatCurrency(moveInDepositDiscount)}</span>
                       </div>
                     )}
                     <div className="flex justify-between">
@@ -1607,11 +1582,10 @@ const RentalQuoteApp: React.FC = () => {
                       </div>
                     )}
                     
-                    {/* Desglose final de descuentos de Move-In por especiales */}
-                    {secondSpecialFullDiscount > 0 && (
+                    {moveInTotalDiscount > 0 && (
                       <div className="flex justify-between text-yellow-600">
                         <span className="text-xs">Move-in Specials Discount</span>
-                        <span className="font-medium text-xs">-{formatCurrency(secondSpecialFullDiscount)}</span>
+                        <span className="font-medium text-xs">-{formatCurrency(moveInTotalDiscount)}</span>
                       </div>
                     )}
 
