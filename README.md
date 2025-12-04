@@ -1,211 +1,147 @@
-# 🏢 Emerald Bay Quote Generator
+# 🏢 Emerald Bay Quote System
 
-Sistema profesional de cotizaciones para la comunidad residencial Emerald Bay en Hialeah, Florida.
+Professional rental quote management system for Emerald Bay apartment community.
 
-## ✨ Características
+## ✨ Features
 
-- 🏠 **13 tipos de apartamentos** con precios dinámicos
-- 🌐 **Sistema bilingüe** (Inglés/Español)
-- 📊 **Cálculos automáticos** de prorrateo
-- 💰 **Descuentos especiales** configurables
-- 📄 **Generación de PDF** profesional
-- 📧 **Envío automático** vía n8n webhook
-- 🎨 **Diseño responsive** con Tailwind CSS
+- 🌐 **Multi-language Support** - English and Spanish interface
+- 👥 **User Management** - Role-based access (Admin/Agent)
+- ✅ **Approval System** - Manual user activation by administrators
+- 🎁 **Dynamic Specials** - Create and manage promotional offers
+- 📊 **Professional Dashboard** - Search, filter, and view all quotes
+- 📄 **PDF Generation** - Professional quote documents
+- 🔒 **Enterprise Security** - Input sanitization, XSS protection, RLS
+- 📱 **Responsive Design** - Works on all devices
 
-## 🚀 Deploy a Producción
+## 🚀 Tech Stack
 
-### Opción 1: Vercel (Recomendado - GRATIS)
+- **Frontend:** React 18 + TypeScript + Vite
+- **Styling:** Tailwind CSS
+- **Backend:** Supabase (PostgreSQL + Auth + RLS)
+- **PDF Generation:** jsPDF
+- **Deployment:** Vercel
+- **Cost:** $0/month
 
-1. **Instala Vercel CLI:**
+## 🛠️ Setup
+
+### Prerequisites
+
+- Node.js 18+
+- npm or yarn
+- Supabase account
+- Vercel account (optional for deployment)
+
+### Installation
+
+1. Clone the repository:
+
 ```bash
-npm install -g vercel
-```
-
-2. **Login:**
-```bash
-vercel login
-```
-
-3. **Deploy:**
-```bash
+git clone https://github.com/YOUR_USERNAME/emerald-bay-quotes.git
 cd emerald-bay-quotes
-vercel --prod
 ```
 
-4. **Dominio personalizado:**
-- Ve a tu proyecto en vercel.com
-- Settings → Domains
-- Agrega: `quotes.emeraldbay.com` (o el que prefieras)
-
-### Opción 2: Netlify
-
-1. **Instala Netlify CLI:**
-```bash
-npm install -g netlify-cli
-```
-
-2. **Login y Deploy:**
-```bash
-netlify login
-netlify init
-netlify deploy --prod
-```
-
-### Opción 3: GitHub + Vercel (Deploy Automático)
-
-1. **Sube a GitHub:**
-```bash
-git init
-git add .
-git commit -m "Initial commit - Emerald Bay Quotes"
-gh repo create emerald-bay-quotes --public --source=. --remote=origin --push
-```
-
-2. **Conecta con Vercel:**
-- Ve a [vercel.com/new](https://vercel.com/new)
-- Importa tu repositorio de GitHub
-- Click en "Deploy" ✅
-
-Cada vez que hagas `git push`, se deployará automáticamente.
-
-## 🛠️ Desarrollo Local
+2. Install dependencies:
 
 ```bash
-# Instalar dependencias
 npm install
+```
 
-# Ejecutar en desarrollo
+3. Set up environment variables:
+
+Create a `.env.local` file in the root directory:
+
+```env
+VITE_SUPABASE_URL=your_supabase_project_url
+VITE_SUPABASE_ANON_KEY=your_supabase_anon_key
+VITE_WEBHOOK_URL=your_n8n_webhook_url
+```
+
+4. Run development server:
+
+```bash
 npm run dev
-
-# Compilar para producción
-npm run build
-
-# Preview de producción
-npm run preview
 ```
 
-## 📝 Configuración del Webhook
+## 🗄️ Database Setup
 
-El webhook de n8n está configurado en `src/App.tsx`:
+See [MIGRATION_GUIDE.md](MIGRATION_GUIDE.md) for detailed database setup instructions.
 
-```typescript
-const WEBHOOK_URL = 'https://n8n.srv894089.hstgr.cloud/webhook/4723cc4d-53ba-4390-862b-602a7c5c010c';
+## 🔐 Security Features
+
+- ✅ Input validation and sanitization
+- ✅ XSS protection with DOMPurify
+- ✅ CSRF protection via Supabase
+- ✅ Row Level Security (RLS) policies
+- ✅ Secure headers (CSP, X-Frame-Options, etc.)
+- ✅ Environment variable protection
+- ✅ Production error handling
+
+## 📦 Project Structure
+
+```
+src/
+├── components/
+│   ├── common/              # Shared components
+│   ├── features/
+│   │   ├── auth/           # Login & Register
+│   │   ├── dashboard/      # Quote dashboard
+│   │   ├── admin/          # Admin panel
+│   │   └── quotes/         # Quote components
+│   ├── layout/             # Layout components
+│   └── LanguageSelector.tsx
+├── context/                # React contexts
+│   ├── AuthContext.tsx
+│   └── LanguageContext.tsx
+├── lib/                    # Supabase client
+│   └── supabase.ts
+├── hooks/                  # Custom hooks
+│   └── useLanguage.tsx
+├── translations.ts         # i18n translations
+├── utils/                  # Utilities & validators
+│   ├── sanitize.ts
+│   ├── validators.ts
+│   └── errorHandler.ts
+├── types/                  # TypeScript types
+├── App.tsx                 # Main application component
+└── main.tsx                # Entry point
 ```
 
-Para cambiar el webhook:
-1. Abre `src/App.tsx`
-2. Modifica la constante `WEBHOOK_URL`
-3. Redeploy la aplicación
+## 🚀 Deployment
 
-## 🎯 Estructura del Proyecto
+### Vercel
 
-```
-emerald-bay-quotes/
-├── src/
-│   ├── App.tsx              # Componente principal
-│   ├── main.tsx             # Entry point
-│   ├── index.css            # Estilos globales
-│   ├── components/
-│   │   ├── LanguageSelector.tsx
-│   │   └── PetRentDisplay.tsx
-│   └── hooks/
-│       └── useLanguage.tsx  # Hook de internacionalización
-├── index.html
-├── package.json
-├── vite.config.ts
-├── tailwind.config.js
-└── README.md
-```
+1. Push to GitHub
+2. Import project in Vercel
+3. Add environment variables:
+   - `VITE_SUPABASE_URL`
+   - `VITE_SUPABASE_ANON_KEY`
+   - `VITE_WEBHOOK_URL`
+4. Deploy
 
-## 💵 Lógica de Precios
+The application will automatically deploy on every push to the main branch.
 
-### Apartamentos y Precios Base
-- **1/1** (Coral): $2,000
-- **1/1** (Otros): $2,250
-- **2/2**: $2,650 o $2,785
-- **3/2**: $2,950 o $3,220
-- **3/2.5** (Hemingway): $3,785 o $3,645
+## 👥 User Roles
 
-### Cargos Adicionales
-- **Application Fee**: $50 por persona
-- **Pet Rent**: $35 por mascota/mes
-- **Extra Parking**: $50/mes
-- **Animal Cleanup**: $500 (no reembolsable)
-- **Security Deposit**: Igual a la renta mensual
+### Agent
 
-### Descuentos Especiales
-1. **Descuento Especial #1**:
-   - $100 descuento en renta mensual
-   - $500 descuento en depósito
+- Create quotes
+- View all quotes
+- Access dashboard
+- Cannot access admin panel
 
-2. **Descuento Especial #2**:
-   - $500 descuento en depósito
-   - $1,200 adicional en move-in
-   - **Total**: $1,700 de descuento
+### Admin
 
-### Prorrateo
-Si la fecha de mudanza no es el día 1:
-- Renta base: `(renta_mensual / 30) * días_restantes`
-- Pet rent: `(35 / 30) * días_restantes * número_mascotas`
-- Parking: `(50 / 30) * días_restantes`
+- All agent permissions
+- Manage specials
+- Approve/deactivate users
+- Full system access
 
-## 🔧 Tecnologías
+## 📄 License
 
-- **React 18** + **TypeScript**
-- **Vite** (Build tool ultra rápido)
-- **Tailwind CSS** (Estilos)
-- **Lucide React** (Iconos)
-- **jsPDF** / **html2canvas** (Generación de PDFs)
-- **date-fns** (Manejo de fechas)
+Private - All rights reserved
 
-## 📊 Costos de Hosting
+## 👨‍💻 Developer
 
-| Plataforma | Costo | Incluye |
-|------------|-------|---------|
-| **Vercel** | $0 (Gratis) | SSL, CDN, Dominio custom |
-| **Netlify** | $0 (Gratis) | SSL, CDN, Forms |
-| **Railway** | $5/mes | DB + Backend |
-| **Bolt.new** | Limitado | No recomendado para producción |
-
-## 🎨 Personalización
-
-### Cambiar colores
-Edita `tailwind.config.js`:
-
-```javascript
-theme: {
-  extend: {
-    colors: {
-      primary: '#your-color',
-      // ...
-    }
-  }
-}
-```
-
-### Agregar apartamentos
-Edita el array `apartments` en `src/App.tsx`:
-
-```typescript
-const apartments = [
-  { id: 'nuevo', name: 'Nuevo Apt (2/1)', category: '2/1' },
-  // ...
-];
-```
-
-### Modificar traducciones
-Edita `src/hooks/useLanguage.tsx` en el objeto `translations`.
-
-## 📧 Soporte
-
-Para soporte técnico o preguntas:
-- **Email**: info@emeraldbay.com
-- **Desarrollador**: EVOX LLC - Amaury
-
-## 📄 Licencia
-
-© 2024 Emerald Bay - EVOX LLC. Todos los derechos reservados.
-
----
-
-**Desarrollado con ❤️ por EVOX LLC**
+**Amaury Enoris**  
+EVOX LLC  
+Miami, Florida
