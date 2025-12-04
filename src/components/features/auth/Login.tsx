@@ -80,9 +80,10 @@ const Login: React.FC<LoginProps> = ({ onSwitchToRegister }) => {
       // 5. Si llegamos aquí, todo está OK
       // El AuthContext detectará el login y actualizará el estado
       
-    } catch (err: any) {
-      logError(err, 'Login')
-      setError(getUserFriendlyError(err))
+    } catch (err) {
+      const error = err as Error
+      logError(error, 'Login')
+      setError(getUserFriendlyError(error))
     } finally {
       setLoading(false)
     }

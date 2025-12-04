@@ -9,16 +9,6 @@ import type { User } from '@supabase/supabase-js'
 import { supabase } from '../lib/supabase'
 import { logError } from '../utils/errorHandler'
 
-interface UserProfile {
-  id: string
-  email: string
-  full_name: string | null
-  role: string
-  is_active: boolean
-  deleted_at: string | null
-  created_at: string
-}
-
 interface AuthContextType {
   user: User | null
   loading: boolean
@@ -34,8 +24,6 @@ interface AuthProviderProps {
 export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const [user, setUser] = useState<User | null>(null)
   const [loading, setLoading] = useState<boolean>(true)
-  const [userProfile, setUserProfile] = useState<UserProfile | null>(null)
-  const [userRole, setUserRole] = useState<string | null>(null)
 
   const loadUserProfile = async (userId: string) => {
     try {
@@ -47,8 +35,6 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       
       if (error) {
         logError(error, 'AuthContext - loadUserProfile')
-        setUserProfile(null)
-        setUserRole(null)
         return
       }
       
@@ -59,14 +45,8 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
           'AuthContext - loadUserProfile - User inactive'
         )
         await supabase.auth.signOut()
-        setUserProfile(null)
-        setUserRole(null)
         return
       }
-      
-      // Si está activo, cargar normalmente
-      setUserProfile(data)
-      setUserRole(data.role)
     } catch (err) {
       logError(err, 'AuthContext - loadUserProfile - Exception')
     }
@@ -99,8 +79,6 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
             await loadUserProfile(session.user.id)
           } else {
             setUser(null)
-            setUserProfile(null)
-            setUserRole(null)
           }
           setLoading(false)
         })
@@ -148,8 +126,6 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
             'AuthContext - User status changed'
           )
           await supabase.auth.signOut()
-          setUserProfile(null)
-          setUserRole(null)
         }
       } catch (err) {
         logError(err, 'AuthContext - Continuous is_active check - Exception')
@@ -162,8 +138,6 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const signOut = async () => {
     try {
       await supabase.auth.signOut()
-      setUserProfile(null)
-      setUserRole(null)
     } catch (error) {
       logError(error, 'AuthContext - signOut')
     }

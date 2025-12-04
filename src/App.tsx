@@ -35,13 +35,24 @@ interface RentalData {
   leasingAgent: string;
 }
 
+interface Special {
+  id: string;
+  name: string;
+  description?: string;
+  apply_to_monthly?: boolean;
+  rent_discount?: number;
+  apply_to_move_in?: boolean;
+  deposit_discount?: number;
+  move_in_discount?: number;
+}
+
 const RentalQuoteApp: React.FC = () => {
   const { language, setLanguage, t } = useLanguage();
   const { user, signOut } = useAuth();
   const [currentView, setCurrentView] = useState<'form' | 'dashboard' | 'admin'>('form');
   const [isAdmin, setIsAdmin] = useState<boolean>(false);
   const [userRole, setUserRole] = useState<string>('');
-  const [activeSpecials, setActiveSpecials] = useState<any[]>([]);
+  const [activeSpecials, setActiveSpecials] = useState<Special[]>([]);
   const [loadingSpecials, setLoadingSpecials] = useState<boolean>(true);
   const [rentalData, setRentalData] = useState<RentalData>({
     apartment: '',
@@ -83,7 +94,8 @@ const RentalQuoteApp: React.FC = () => {
           setActiveSpecials(data || []);
         }
       } catch (err) {
-        logError(err, 'fetchActiveSpecials - Exception');
+        const error = err as Error;
+        logError(error, 'fetchActiveSpecials - Exception');
       } finally {
         setLoadingSpecials(false);
       }
@@ -120,7 +132,8 @@ const RentalQuoteApp: React.FC = () => {
         setUserRole(role);
         setIsAdmin(role === 'admin');
       } catch (err) {
-        logError(err, 'checkAdmin - Exception');
+        const error = err as Error;
+        logError(error, 'checkAdmin - Exception');
         // Si hay excepción al obtener el rol, no se asume admin por seguridad
         setIsAdmin(false);
         setUserRole('');
@@ -179,16 +192,16 @@ const RentalQuoteApp: React.FC = () => {
       const special = activeSpecials.find((s) => s.id === specialId);
       if (special) {
         // Descuentos mensuales
-        if (special.apply_to_monthly && special.rent_discount > 0) {
+        if (special.apply_to_monthly && special.rent_discount && special.rent_discount > 0) {
           monthlyRentDiscount += Number(special.rent_discount) || 0;
         }
 
         // Descuentos de move-in
         if (special.apply_to_move_in) {
-          if (special.deposit_discount > 0) {
+          if (special.deposit_discount && special.deposit_discount > 0) {
             moveInDepositDiscount += Number(special.deposit_discount) || 0;
           }
-          if (special.move_in_discount > 0) {
+          if (special.move_in_discount && special.move_in_discount > 0) {
             moveInTotalDiscount += Number(special.move_in_discount) || 0;
           }
         }
@@ -254,7 +267,7 @@ const RentalQuoteApp: React.FC = () => {
       proratedPetRent: Math.round(proratedPetRent * 100) / 100,
       proratedParkingRent: Math.round(proratedParkingRent * 100) / 100,
     };
-  }, [rentalData.moveInDate, rentalData.monthlyRent, rentalData.numberOfPets, rentalData.needsExtraParking, baseRent]);
+  }, [rentalData.moveInDate, rentalData.monthlyRent, rentalData.numberOfPets, rentalData.needsExtraParking, baseRent, extraParkingRent]);
 
   const monthlyTotal = baseRent + extraParkingRent + petRent;
   const moveInCharges = effectiveSecurityDeposit + prorationInfo.proratedRent + applicationFee + animalCleanup + prorationInfo.proratedPetRent + prorationInfo.proratedParkingRent - moveInTotalDiscount;
@@ -267,9 +280,9 @@ const RentalQuoteApp: React.FC = () => {
     }).format(amount);
   };
 
-  const handleChange = (field: keyof RentalData, value: any) => {
+  const handleChange = <K extends keyof RentalData>(field: K, value: RentalData[K]) => {
     if (field === 'apartment') {
-      const prices = getPricingOptions(value);
+      const prices = getPricingOptions(value as string);
       if (prices.length === 1) {
         setRentalData(prev => ({ ...prev, [field]: value, monthlyRent: prices[0] }));
         setShowPriceSelector(false);
@@ -327,7 +340,7 @@ const RentalQuoteApp: React.FC = () => {
     return digitsOnly.length === 10;
   };
 
-  const sendPDFViaWebhook = async (pdfBlob: Blob, formData: any) => {
+  const sendPDFViaWebhook = async (pdfBlob: Blob, formData: RentalData & { prorationInfo?: typeof prorationInfo }) => {
     try {
       const formDataToSend = new FormData();
       
@@ -445,7 +458,8 @@ const RentalQuoteApp: React.FC = () => {
           logError(dbError, 'saveQuoteToSupabase');
         }
       } catch (err) {
-        logError(err, 'saveQuoteToSupabase - Exception');
+        const error = err as Error;
+        logError(error, 'saveQuoteToSupabase - Exception');
       }
 
       alert('Quote sent successfully to: ' + rentalData.tenantEmail);
@@ -510,7 +524,21 @@ const RentalQuoteApp: React.FC = () => {
       console.warn('Could not load logo:', error);
     }
 
-    const generatePDFWithLogo = (doc: any, logoBase64: string | null, qrCodeDataURL: string | null) => {
+    // jsPDF type - using interface for the document instance
+    interface jsPDFDoc {
+      addImage: (imgData: string, format: string, x: number, y: number, w: number, h: number) => void;
+      setFontSize: (size: number) => void;
+      setTextColor: (...args: number[]) => void;
+      setFont: (family: string, style: string) => void;
+      text: (text: string | string[], x: number, y: number, options?: { align?: 'left' | 'center' | 'right' | 'justify' }) => void;
+      setDrawColor: (...args: number[]) => void;
+      setLineWidth: (width: number) => void;
+      line: (x1: number, y1: number, x2: number, y2: number) => void;
+      splitTextToSize: (text: string, maxWidth: number) => string[];
+      addPage: () => void;
+      output: (type: string) => Blob | string;
+    }
+    const generatePDFWithLogo = (doc: jsPDFDoc, logoBase64: string | null, qrCodeDataURL: string | null) => {
       const primaryColor = [29, 170, 108]; // Emerald Bay primary green #1DAA6C
       const textColor = [51, 51, 51];
       const leftMargin = 20;
@@ -689,7 +717,7 @@ const RentalQuoteApp: React.FC = () => {
       if (rentalData.selectedSpecials && rentalData.selectedSpecials.length > 0) {
         rentalData.selectedSpecials.forEach((specialId) => {
           const special = activeSpecials.find((s) => s.id === specialId);
-          if (special && special.apply_to_monthly && special.rent_discount > 0) {
+          if (special && special.apply_to_monthly && special.rent_discount && special.rent_discount > 0) {
             doc.setTextColor(0, 150, 0); // Verde
 
             const label =
@@ -763,7 +791,7 @@ const RentalQuoteApp: React.FC = () => {
       if (rentalData.selectedSpecials && rentalData.selectedSpecials.length > 0) {
         rentalData.selectedSpecials.forEach((specialId) => {
           const special = activeSpecials.find((s) => s.id === specialId);
-          if (special && special.apply_to_move_in && special.deposit_discount > 0) {
+          if (special && special.apply_to_move_in && special.deposit_discount && special.deposit_discount > 0) {
             doc.setTextColor(0, 150, 0); // Verde
             const label =
               pdfLanguage === 'es'
@@ -817,7 +845,7 @@ const RentalQuoteApp: React.FC = () => {
       if (rentalData.selectedSpecials && rentalData.selectedSpecials.length > 0) {
         rentalData.selectedSpecials.forEach((specialId) => {
           const special = activeSpecials.find((s) => s.id === specialId);
-          if (special && special.apply_to_move_in && special.move_in_discount > 0) {
+          if (special && special.apply_to_move_in && special.move_in_discount && special.move_in_discount > 0) {
             doc.setTextColor(0, 150, 0); // Verde
             const label =
               pdfLanguage === 'es'
@@ -1433,6 +1461,7 @@ const RentalQuoteApp: React.FC = () => {
                             )}
                             <div className="text-sm text-yellow-700 mt-2">
                               {special.apply_to_monthly &&
+                                special.rent_discount &&
                                 special.rent_discount > 0 && (
                                   <span className="mr-4">
                                     Monthly Rent: -$
@@ -1441,7 +1470,8 @@ const RentalQuoteApp: React.FC = () => {
                                 )}
                               {special.apply_to_move_in && (
                                 <>
-                                  {special.deposit_discount > 0 && (
+                                  {special.deposit_discount &&
+                                    special.deposit_discount > 0 && (
                                     <span className="mr-4">
                                       Deposit: -$
                                       {Number(
@@ -1449,7 +1479,8 @@ const RentalQuoteApp: React.FC = () => {
                                       ).toFixed(2)}
                                     </span>
                                   )}
-                                  {special.move_in_discount > 0 && (
+                                  {special.move_in_discount &&
+                                    special.move_in_discount > 0 && (
                                     <span>
                                       Move-in: -$
                                       {Number(

@@ -5,10 +5,11 @@ const isDevelopment = import.meta.env.DEV
  * In development: shows full error details
  * In production: shows generic, safe messages
  */
-export const getUserFriendlyError = (error: any): string => {
-  // En desarrollo, mostrar error completo
+export const getUserFriendlyError = (error: Error | unknown): string => {
+  const errorMessage = error instanceof Error ? error.message : String(error)
+
   if (isDevelopment) {
-    return error?.message || 'An error occurred'
+    return errorMessage
   }
 
   // En producción, mensajes genéricos
@@ -25,7 +26,6 @@ export const getUserFriendlyError = (error: any): string => {
   }
 
   // Buscar mensaje conocido
-  const errorMessage = error?.message || String(error) || ''
   for (const [key, message] of Object.entries(errorMap)) {
     if (errorMessage.includes(key)) {
       return message
@@ -41,7 +41,7 @@ export const getUserFriendlyError = (error: any): string => {
  * In development: logs to console
  * In production: should send to logging service (Sentry, etc.)
  */
-export const logError = (error: any, context?: string): void => {
+export const logError = (error: Error | unknown, context?: string): void => {
   if (isDevelopment) {
     console.error(`Error${context ? ` in ${context}` : ''}:`, error)
   }

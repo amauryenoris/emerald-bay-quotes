@@ -4,18 +4,14 @@ import { useLanguage } from '../../../context/LanguageContext';
 interface CostBreakdownProps {
   numberOfPets: number;
   petRent: number; // petRent es el costo mensual TOTAL (número de mascotas * 35)
-  moveInDate: string;
   remainingDays: number;
-  daysInMonth: number;
   isProrated: boolean;
 }
 
 const CostBreakdown: React.FC<CostBreakdownProps> = ({
   numberOfPets,
   petRent,
-  moveInDate,
   remainingDays,
-  daysInMonth,
   isProrated
 }) => {
   const { t } = useLanguage();

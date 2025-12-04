@@ -70,14 +70,6 @@ const Dashboard: React.FC = () => {
     return `${month}/${day}/${year}`;
   };
 
-  const formatCurrency = (amount: number): string => {
-    return new Intl.NumberFormat('en-US', {
-      style: 'currency',
-      currency: 'USD',
-      minimumFractionDigits: 2,
-    }).format(amount);
-  };
-
   // Función de búsqueda y filtros combinados
   const filteredQuotes = quotes.filter((quote) => {
     // Búsqueda (case insensitive)

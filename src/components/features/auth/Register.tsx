@@ -3,7 +3,6 @@ import { supabase } from '../../../lib/supabase'
 import { useLanguage } from '../../../context/LanguageContext'
 import { isValidEmail } from '../../../utils/validators'
 import { sanitizeText } from '../../../utils/sanitize'
-import { getUserFriendlyError, logError } from '../../../utils/errorHandler'
 
 interface RegisterProps {
   onSwitchToLogin: () => void
@@ -75,9 +74,17 @@ const Register: React.FC<RegisterProps> = ({ onSwitchToLogin }) => {
         
         setSuccess(true)
       }
-    } catch (err: any) {
-      logError(err, 'Register')
-      setError(getUserFriendlyError(err))
+    } catch (err) {
+      const error = err as Error
+      console.error('Registration error:', error)
+      
+      if (error.message.includes('already registered')) {
+        setError('This email is already registered. Please log in instead.')
+      } else if (error.message.includes('after 25 seconds')) {
+        setError('Too many attempts. Please wait 30 seconds and try again.')
+      } else {
+        setError(error.message || 'Registration failed. Please try again.')
+      }
     } finally {
       setLoading(false)
     }
