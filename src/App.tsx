@@ -1,5 +1,5 @@
 import React, { useState, useMemo, useEffect } from 'react';
-import { Home, Calculator, FileDown, Users, Car, Heart, DollarSign, PawPrint } from 'lucide-react';
+import { Home, Calculator, FileDown, Users, Car, Send, DollarSign, PawPrint } from 'lucide-react';
 import ReactGA from 'react-ga4';
 import { useLanguage } from './context/LanguageContext';
 import { useAuth } from './context/AuthContext';
@@ -1626,7 +1626,7 @@ const RentalQuoteApp: React.FC = () => {
                     </>
                   ) : (
                     <>
-                      <Heart className="w-5 h-5" />
+                      <Send className="w-5 h-5" />
                       {t('form.sendEmail')}
                     </>
                   )}
