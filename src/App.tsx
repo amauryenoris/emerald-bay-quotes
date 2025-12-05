@@ -54,6 +54,9 @@ const RentalQuoteApp: React.FC = () => {
   const [userRole, setUserRole] = useState<string>('');
   const [activeSpecials, setActiveSpecials] = useState<Special[]>([]);
   const [loadingSpecials, setLoadingSpecials] = useState<boolean>(true);
+  
+  // 🔄 Log de render para debugging
+  console.log('🔄 App render', { currentView, user: user?.email, isAdmin, userRole });
   const [rentalData, setRentalData] = useState<RentalData>({
     apartment: '',
     monthlyRent: 0,
@@ -75,6 +78,7 @@ const RentalQuoteApp: React.FC = () => {
   const [availablePrices, setAvailablePrices] = useState<number[]>([]);
 
   useEffect(() => {
+    console.log('⚡ useEffect ejecutado: fetchActiveSpecials');
     const fetchActiveSpecials = async () => {
       try {
         setLoadingSpecials(true);
@@ -106,6 +110,7 @@ const RentalQuoteApp: React.FC = () => {
 
 
   useEffect(() => {
+    console.log('⚡ useEffect ejecutado: checkAdmin', { userId: user?.id });
     const checkAdmin = async () => {
       if (!user) {
         setIsAdmin(false);
@@ -143,11 +148,18 @@ const RentalQuoteApp: React.FC = () => {
     checkAdmin();
   }, [user]);
 
+  // Protección de vista admin - solo redirige si intenta acceder sin permisos
+  // IMPORTANTE: Solo depende de isAdmin para evitar ciclos infinitos
   useEffect(() => {
+    console.log('⚡ useEffect ejecutado: adminViewProtection', { currentView, isAdmin });
+    // Solo redirige si está en admin y no tiene permisos
+    // Esto evita el ciclo infinito porque no depende de currentView
     if (currentView === 'admin' && !isAdmin) {
+      console.log('⚠️ Intento de acceder a admin sin permisos, redirigiendo a form');
       setCurrentView('form');
     }
-  }, [currentView, isAdmin]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isAdmin]); // Solo depende de isAdmin, no de currentView
 
   const apartments = [
     { id: 'keylime', name: 'Keylime (1/1) - 826 SQF', category: '1/1' },
@@ -182,41 +194,49 @@ const RentalQuoteApp: React.FC = () => {
     return pricingRules[category as keyof typeof pricingRules] || [];
   };
 
-  // Calcular descuentos de especiales seleccionados
-  let monthlyRentDiscount = 0;
-  let moveInDepositDiscount = 0;
-  let moveInTotalDiscount = 0;
+  // Calcular descuentos de especiales seleccionados - MEMOIZADO para evitar re-renders
+  const discounts = useMemo(() => {
+    let monthlyRentDiscount = 0;
+    let moveInDepositDiscount = 0;
+    let moveInTotalDiscount = 0;
 
-  if (rentalData.selectedSpecials && rentalData.selectedSpecials.length > 0) {
-    rentalData.selectedSpecials.forEach((specialId) => {
-      const special = activeSpecials.find((s) => s.id === specialId);
-      if (special) {
-        // Descuentos mensuales
-        if (special.apply_to_monthly && special.rent_discount && special.rent_discount > 0) {
-          monthlyRentDiscount += Number(special.rent_discount) || 0;
-        }
-
-        // Descuentos de move-in
-        if (special.apply_to_move_in) {
-          if (special.deposit_discount && special.deposit_discount > 0) {
-            moveInDepositDiscount += Number(special.deposit_discount) || 0;
+    if (rentalData.selectedSpecials && rentalData.selectedSpecials.length > 0) {
+      rentalData.selectedSpecials.forEach((specialId) => {
+        const special = activeSpecials.find((s) => s.id === specialId);
+        if (special) {
+          // Descuentos mensuales
+          if (special.apply_to_monthly && special.rent_discount && special.rent_discount > 0) {
+            monthlyRentDiscount += Number(special.rent_discount) || 0;
           }
-          if (special.move_in_discount && special.move_in_discount > 0) {
-            moveInTotalDiscount += Number(special.move_in_discount) || 0;
+
+          // Descuentos de move-in
+          if (special.apply_to_move_in) {
+            if (special.deposit_discount && special.deposit_discount > 0) {
+              moveInDepositDiscount += Number(special.deposit_discount) || 0;
+            }
+            if (special.move_in_discount && special.move_in_discount > 0) {
+              moveInTotalDiscount += Number(special.move_in_discount) || 0;
+            }
           }
         }
-      }
-    });
-  }
+      });
+    }
 
-  const baseRent = rentalData.monthlyRent - monthlyRentDiscount;
+    return {
+      monthlyRentDiscount,
+      moveInDepositDiscount,
+      moveInTotalDiscount,
+    };
+  }, [rentalData.selectedSpecials, activeSpecials]);
+
+  const baseRent = useMemo(() => rentalData.monthlyRent - discounts.monthlyRentDiscount, [rentalData.monthlyRent, discounts.monthlyRentDiscount]);
   const baseSecurityDeposit = rentalData.monthlyRent;
-  const effectiveSecurityDeposit = baseSecurityDeposit - moveInDepositDiscount; 
+  const effectiveSecurityDeposit = useMemo(() => baseSecurityDeposit - discounts.moveInDepositDiscount, [baseSecurityDeposit, discounts.moveInDepositDiscount]); 
   
-  const applicationFee = rentalData.numberOfPersons * 50;
-  const animalCleanup = rentalData.needsAnimalCleanup ? 500 : 0;
-  const extraParkingRent = rentalData.needsExtraParking ? 50 : 0;
-  const petRent = rentalData.numberOfPets * 35;
+  const applicationFee = useMemo(() => rentalData.numberOfPersons * 50, [rentalData.numberOfPersons]);
+  const animalCleanup = useMemo(() => rentalData.needsAnimalCleanup ? 500 : 0, [rentalData.needsAnimalCleanup]);
+  const extraParkingRent = useMemo(() => rentalData.needsExtraParking ? 50 : 0, [rentalData.needsExtraParking]);
+  const petRent = useMemo(() => rentalData.numberOfPets * 35, [rentalData.numberOfPets]);
   
   const prorationInfo = useMemo(() => {
     if (!rentalData.moveInDate || rentalData.monthlyRent === 0) {
@@ -269,8 +289,11 @@ const RentalQuoteApp: React.FC = () => {
     };
   }, [rentalData.moveInDate, rentalData.monthlyRent, rentalData.numberOfPets, rentalData.needsExtraParking, baseRent, extraParkingRent]);
 
-  const monthlyTotal = baseRent + extraParkingRent + petRent;
-  const moveInCharges = effectiveSecurityDeposit + prorationInfo.proratedRent + applicationFee + animalCleanup + prorationInfo.proratedPetRent + prorationInfo.proratedParkingRent - moveInTotalDiscount;
+  const monthlyTotal = useMemo(() => baseRent + extraParkingRent + petRent, [baseRent, extraParkingRent, petRent]);
+  const moveInCharges = useMemo(() => 
+    effectiveSecurityDeposit + prorationInfo.proratedRent + applicationFee + animalCleanup + prorationInfo.proratedPetRent + prorationInfo.proratedParkingRent - discounts.moveInTotalDiscount,
+    [effectiveSecurityDeposit, prorationInfo.proratedRent, prorationInfo.proratedPetRent, prorationInfo.proratedParkingRent, applicationFee, animalCleanup, discounts.moveInTotalDiscount]
+  );
   const grandTotal = moveInCharges;
   
   const formatCurrency = (amount: number) => {
@@ -1530,10 +1553,10 @@ const RentalQuoteApp: React.FC = () => {
                       <span>Base Rent</span>
                       <span className="font-medium">{formatCurrency(rentalData.monthlyRent)}</span>
                     </div>
-                    {monthlyRentDiscount > 0 && (
+                    {discounts.monthlyRentDiscount > 0 && (
                       <div className="flex justify-between text-yellow-600">
                         <span className="text-xs">Special Discount</span>
-                        <span className="font-medium text-xs">-{formatCurrency(monthlyRentDiscount)}</span>
+                        <span className="font-medium text-xs">-{formatCurrency(discounts.monthlyRentDiscount)}</span>
                       </div>
                     )}
                     {rentalData.needsExtraParking && (
@@ -1562,10 +1585,10 @@ const RentalQuoteApp: React.FC = () => {
                       <span>Security Deposit</span>
                       <span className="font-medium">{formatCurrency(baseSecurityDeposit)}</span>
                     </div>
-                    {moveInDepositDiscount > 0 && (
+                    {discounts.moveInDepositDiscount > 0 && (
                       <div className="flex justify-between text-yellow-600">
                         <span className="text-xs">Deposit Discount</span>
-                        <span className="font-medium text-xs">-{formatCurrency(moveInDepositDiscount)}</span>
+                        <span className="font-medium text-xs">-{formatCurrency(discounts.moveInDepositDiscount)}</span>
                       </div>
                     )}
                     <div className="flex justify-between">
@@ -1613,10 +1636,10 @@ const RentalQuoteApp: React.FC = () => {
                       </div>
                     )}
                     
-                    {moveInTotalDiscount > 0 && (
+                    {discounts.moveInTotalDiscount > 0 && (
                       <div className="flex justify-between text-yellow-600">
                         <span className="text-xs">Move-in Specials Discount</span>
-                        <span className="font-medium text-xs">-{formatCurrency(moveInTotalDiscount)}</span>
+                        <span className="font-medium text-xs">-{formatCurrency(discounts.moveInTotalDiscount)}</span>
                       </div>
                     )}
 

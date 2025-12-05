@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { supabase } from '../../../lib/supabase';
 import { useLanguage } from '../../../context/LanguageContext';
+import { useAuth } from '../../../context/AuthContext';
 import QuoteDetailsModal from './QuoteDetailsModal';
 
 interface Quote {
@@ -27,6 +28,7 @@ interface Quote {
 
 const Dashboard: React.FC = () => {
   const { t } = useLanguage();
+  const { user } = useAuth();
   const [quotes, setQuotes] = useState<Quote[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
   const [searchTerm, setSearchTerm] = useState<string>('');
@@ -38,29 +40,59 @@ const Dashboard: React.FC = () => {
   const [isModalOpen, setIsModalOpen] = useState<boolean>(false);
 
   useEffect(() => {
-    loadQuotes();
+    console.log('🔵 Dashboard mounted');
+    return () => {
+      console.log('🔴 Dashboard unmounted');
+    };
   }, []);
 
-  const loadQuotes = async () => {
-    try {
-      setLoading(true);
-      const { data, error } = await supabase
-        .from('quotes')
-        .select('*')
-        .order('created_at', { ascending: false });
+  useEffect(() => {
+    let isMounted = true; // Flag para evitar race conditions
 
-      if (error) {
-        console.error('Error loading quotes:', error);
-        return;
+    console.log('📊 Loading quotes...', { user });
+
+    const fetchQuotes = async () => {
+      if (!user) return;
+
+      try {
+        setLoading(true);
+
+        const { data, error: fetchError } = await supabase
+          .from('quotes')
+          .select('*')
+          .order('created_at', { ascending: false });
+
+        // Solo actualizar estado si el componente sigue montado
+        if (isMounted) {
+          if (fetchError) throw fetchError;
+          console.log('✅ Quotes loaded:', data?.length || 0);
+          setQuotes(data || []);
+        }
+      } catch (err) {
+        if (isMounted) {
+          console.error('Error fetching quotes:', err);
+        }
+      } finally {
+        if (isMounted) {
+          setLoading(false);
+        }
       }
+    };
 
-      setQuotes(data || []);
-    } catch (error) {
-      console.error('Error loading quotes:', error);
-    } finally {
-      setLoading(false);
+    if (user) {
+      fetchQuotes();
+    } else {
+      console.log('⚠️ No user, skipping fetch');
+      if (isMounted) {
+        setLoading(false);
+      }
     }
-  };
+
+    // Cleanup: marcar como desmontado
+    return () => {
+      isMounted = false;
+    };
+  }, [user]);
 
   const formatDate = (dateString: string): string => {
     const date = new Date(dateString);
