@@ -1280,7 +1280,6 @@ const RentalQuoteApp: React.FC = () => {
                       onChange={(e) => handleChange('tenantPhone', e.target.value)}
                       className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-primary focus:border-emerald-primary transition-colors"
                       placeholder="(305) 123-4567"
-                      pattern="\(?\d{3}\)?[-.\s]?\d{3}[-.\s]?\d{4}"
                       required
                     />
                   </div>
