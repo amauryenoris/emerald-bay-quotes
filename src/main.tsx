@@ -7,8 +7,13 @@ import { LanguageProvider } from './context/LanguageContext';
 import './index.css';
 
 // Initialize Google Analytics
-ReactGA.initialize('G-DJNCJHE4JG');
-ReactGA.send('pageview');
+try {
+  ReactGA.initialize('G-DJNCJHE4JG');
+  ReactGA.send('pageview');
+} catch (error) {
+  // Google Analytics blocked or unavailable (extensions, CSP, etc.)
+  console.warn('Google Analytics could not be initialized');
+}
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>

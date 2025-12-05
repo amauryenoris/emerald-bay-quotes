@@ -319,12 +319,17 @@ const RentalQuoteApp: React.FC = () => {
       }
       
       // Track apartment selection
-      const apartmentName = apartments.find(apt => apt.id === value)?.name || 'Unknown';
-      ReactGA.event({
-        category: 'Quote',
-        action: 'apartment_selected',
-        label: apartmentName,
-      });
+      try {
+        const apartmentName = apartments.find(apt => apt.id === value)?.name || 'Unknown';
+        ReactGA.event({
+          category: 'Quote',
+          action: 'apartment_selected',
+          label: apartmentName,
+        });
+      } catch (error) {
+        // Google Analytics blocked or unavailable
+        console.warn('Google Analytics not available');
+      }
     } else {
       setRentalData(prev => ({ ...prev, [field]: value }));
     }
@@ -488,11 +493,16 @@ const RentalQuoteApp: React.FC = () => {
       alert('Quote sent successfully to: ' + rentalData.tenantEmail);
       
       // Track email sent
-      ReactGA.event({
-        category: 'Email',
-        action: 'email_sent',
-        label: rentalData.tenantEmail,
-      });
+      try {
+        ReactGA.event({
+          category: 'Email',
+          action: 'email_sent',
+          label: rentalData.tenantEmail,
+        });
+      } catch (error) {
+        // Google Analytics blocked or unavailable
+        console.warn('Google Analytics not available');
+      }
     } catch (error) {
       logError(error, 'sendQuoteViaWebhook');
       alert('Error al generar el PDF. Por favor intente de nuevo.');
@@ -1059,13 +1069,18 @@ const RentalQuoteApp: React.FC = () => {
     }
     
     // Track quote generation
-    const apartmentType = apartments.find(apt => apt.id === rentalData.apartment)?.name || 'Not selected';
-    ReactGA.event({
-      category: 'Quote',
-      action: 'quote_generated',
-      label: apartmentType,
-      value: grandTotal,
-    });
+    try {
+      const apartmentType = apartments.find(apt => apt.id === rentalData.apartment)?.name || 'Not selected';
+      ReactGA.event({
+        category: 'Quote',
+        action: 'quote_generated',
+        label: apartmentType,
+        value: grandTotal,
+      });
+    } catch (error) {
+      // Google Analytics blocked or unavailable
+      console.warn('Google Analytics not available');
+    }
     
     generatePDFBlob(language).then((pdfBlob) => {
       const url = URL.createObjectURL(pdfBlob);
@@ -1082,11 +1097,16 @@ const RentalQuoteApp: React.FC = () => {
       URL.revokeObjectURL(url);
       
       // Track PDF download
-      ReactGA.event({
-        category: 'PDF',
-        action: 'pdf_downloaded',
-        label: rentalData.tenantName,
-      });
+      try {
+        ReactGA.event({
+          category: 'PDF',
+          action: 'pdf_downloaded',
+          label: rentalData.tenantName,
+        });
+      } catch (error) {
+        // Google Analytics blocked or unavailable
+        console.warn('Google Analytics not available');
+      }
     }).catch((error) => {
       console.error('Error generating PDF:', error);
       alert('Error al generar el PDF. Por favor intente de nuevo.');
