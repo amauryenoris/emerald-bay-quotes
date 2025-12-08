@@ -162,19 +162,19 @@ const RentalQuoteApp: React.FC = () => {
   }, [isAdmin]); // Solo depende de isAdmin, no de currentView
 
   const apartments = [
-    { id: 'keylime', name: 'Keylime (1/1) - 826 SQF', category: '1/1' },
-    { id: 'hibiscus', name: 'Hibiscus (1/1) - 814 SQF', category: '1/1' },
-    { id: 'pelican', name: 'Pelican (1/1) - 766 SQF', category: '1/1' },
-    { id: 'palm', name: 'Palm (1/1) - 739 SQF', category: '1/1' },
-    { id: 'coral', name: 'Coral (1/1) - 686 SQF', category: '1/1' },
-    { id: 'duval', name: 'Duval (2/2) - 1,097 SQF', category: '2/2' },
-    { id: 'seabreeze', name: 'Seabreeze (2/2) - 1,097 SQF', category: '2/2' },
-    { id: 'mangrove', name: 'Mangrove (2/2) - 1,091 SQF', category: '2/2' },
-    { id: 'sunset', name: 'Sunset (2/2) - 1,040 SQF', category: '2/2' },
-    { id: 'sandbar', name: 'Sandbar (3/2) - 1,333 SQF', category: '3/2' },
-    { id: 'reef', name: 'Reef (3/2) - 1,289 SQF', category: '3/2' },
-    { id: 'sunrise', name: 'Sunrise (3/2) - 1,289 SQF', category: '3/2' },
-    { id: 'hemingway', name: 'Hemingway (3/2.5) - 1,537 SQF', category: '3/2.5' },
+    { id: 'keylime', name: 'Keylime (1/1) - 826 SQF', category: '1/1', beds: 1, baths: 1, sqft: 826, rent: 2100 },
+    { id: 'hibiscus', name: 'Hibiscus (1/1) - 814 SQF', category: '1/1', beds: 1, baths: 1, sqft: 814, rent: 2100 },
+    { id: 'pelican', name: 'Pelican (1/1) - 766 SQF', category: '1/1', beds: 1, baths: 1, sqft: 766, rent: 2050 },
+    { id: 'palm', name: 'Palm (1/1) - 739 SQF', category: '1/1', beds: 1, baths: 1, sqft: 739, rent: 2050 },
+    { id: 'coral', name: 'Coral (1/1) - 686 SQF', category: '1/1', beds: 1, baths: 1, sqft: 686, rent: 2050 },
+    { id: 'duval', name: 'Duvall (2/2) - 1,097 SQF', category: '2/2', beds: 2, baths: 2, sqft: 1097, rent: 2650 },
+    { id: 'seabreeze', name: 'Seabreeze (2/2) - 1,097 SQF', category: '2/2', beds: 2, baths: 2, sqft: 1097, rent: 2500 },
+    { id: 'mangrove', name: 'Mangrove (2/2) - 1,091 SQF', category: '2/2', beds: 2, baths: 2, sqft: 1091, rent: 2650 },
+    { id: 'sunset', name: 'Sunset (2/2) - 1,040 SQF', category: '2/2', beds: 2, baths: 2, sqft: 1040, rent: 2650 },
+    { id: 'sandbar', name: 'Sandbar (3/2) - 1,333 SQF', category: '3/2', beds: 3, baths: 2, sqft: 1333, rent: 3100 },
+    { id: 'reef', name: 'Reef (3/2) - 1,289 SQF', category: '3/2', beds: 3, baths: 2, sqft: 1289, rent: 3200 },
+    { id: 'sunrise', name: 'Sunrise (3/2) - 1,289 SQF', category: '3/2', beds: 3, baths: 2, sqft: 1289, rent: 3200 },
+    { id: 'hemingway', name: 'Hemingway (3/2.5) - 1,537 SQF', category: '3/2.5', beds: 3, baths: 2.5, sqft: 1537, rent: 3450 },
   ];
 
   const getPricingOptions = (apartmentId: string): number[] => {
