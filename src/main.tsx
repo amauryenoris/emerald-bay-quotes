@@ -10,7 +10,7 @@ import './index.css';
 try {
   ReactGA.initialize('G-DJNCJHE4JG');
   ReactGA.send('pageview');
-} catch (error) {
+} catch {
   // Google Analytics blocked or unavailable (extensions, CSP, etc.)
   console.warn('Google Analytics could not be initialized');
 }

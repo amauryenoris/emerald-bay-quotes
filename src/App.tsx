@@ -326,7 +326,7 @@ const RentalQuoteApp: React.FC = () => {
           action: 'apartment_selected',
           label: apartmentName,
         });
-      } catch (error) {
+      } catch {
         // Google Analytics blocked or unavailable
         console.warn('Google Analytics not available');
       }
@@ -499,7 +499,7 @@ const RentalQuoteApp: React.FC = () => {
           action: 'email_sent',
           label: rentalData.tenantEmail,
         });
-      } catch (error) {
+      } catch {
         // Google Analytics blocked or unavailable
         console.warn('Google Analytics not available');
       }
@@ -1077,7 +1077,7 @@ const RentalQuoteApp: React.FC = () => {
         label: apartmentType,
         value: grandTotal,
       });
-    } catch (error) {
+    } catch {
       // Google Analytics blocked or unavailable
       console.warn('Google Analytics not available');
     }
@@ -1103,7 +1103,7 @@ const RentalQuoteApp: React.FC = () => {
           action: 'pdf_downloaded',
           label: rentalData.tenantName,
         });
-      } catch (error) {
+      } catch {
         // Google Analytics blocked or unavailable
         console.warn('Google Analytics not available');
       }
