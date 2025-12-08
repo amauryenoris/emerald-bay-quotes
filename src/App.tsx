@@ -163,18 +163,18 @@ const RentalQuoteApp: React.FC = () => {
 
   const apartments = [
     { id: 'keylime', name: 'Keylime (1/1) - 826 SQF', category: '1/1' },
-    { id: 'hibiscus', name: 'Hibiscus (1/1) - 826 SQF', category: '1/1' },
+    { id: 'hibiscus', name: 'Hibiscus (1/1) - 814 SQF', category: '1/1' },
     { id: 'pelican', name: 'Pelican (1/1) - 766 SQF', category: '1/1' },
-    { id: 'palm', name: 'Palm (1/1) - 766 SQF', category: '1/1' },
-    { id: 'coral', name: 'Coral (1/1) - 769 SQF', category: '1/1' },
-    { id: 'duval', name: 'Duval (2/2) - 1,228 SQF', category: '2/2' },
-    { id: 'seabreeze', name: 'Seabreeze (2/2) - 1,103 SQF', category: '2/2' },
-    { id: 'mangrove', name: 'Mangrove (2/2) - 1,176 SQF', category: '2/2' },
-    { id: 'sunset', name: 'Sunset (2/2) - 1,228 SQF', category: '2/2' },
-    { id: 'sandbar', name: 'Sandbar (3/2) - 1,442 SQF', category: '3/2' },
-    { id: 'reef', name: 'Reef (3/2) - 1,511 SQF', category: '3/2' },
-    { id: 'sunrise', name: 'Sunrise (3/2) - 1,489 SQF', category: '3/2' },
-    { id: 'hemingway', name: 'Hemingway (3/2.5) - 1,644 SQF', category: '3/2.5' },
+    { id: 'palm', name: 'Palm (1/1) - 739 SQF', category: '1/1' },
+    { id: 'coral', name: 'Coral (1/1) - 686 SQF', category: '1/1' },
+    { id: 'duval', name: 'Duval (2/2) - 1,097 SQF', category: '2/2' },
+    { id: 'seabreeze', name: 'Seabreeze (2/2) - 1,097 SQF', category: '2/2' },
+    { id: 'mangrove', name: 'Mangrove (2/2) - 1,091 SQF', category: '2/2' },
+    { id: 'sunset', name: 'Sunset (2/2) - 1,040 SQF', category: '2/2' },
+    { id: 'sandbar', name: 'Sandbar (3/2) - 1,333 SQF', category: '3/2' },
+    { id: 'reef', name: 'Reef (3/2) - 1,289 SQF', category: '3/2' },
+    { id: 'sunrise', name: 'Sunrise (3/2) - 1,289 SQF', category: '3/2' },
+    { id: 'hemingway', name: 'Hemingway (3/2.5) - 1,537 SQF', category: '3/2.5' },
   ];
 
   const getPricingOptions = (apartmentId: string): number[] => {
