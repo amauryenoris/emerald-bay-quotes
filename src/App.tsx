@@ -990,6 +990,9 @@ const RentalQuoteApp: React.FC = () => {
       const creditText = doc.splitTextToSize('590 (Only for financially responsible applicants)', 170);
       doc.text(creditText, 20, yPosition);
       yPosition += creditText.length * 4 + 5;
+      const noteText = doc.splitTextToSize('** No evictions', 170);
+      doc.text(noteText, 20, yPosition);
+      yPosition += noteText.length * 4 + 5;
       
       if (yPosition > 250) {
         doc.addPage();
