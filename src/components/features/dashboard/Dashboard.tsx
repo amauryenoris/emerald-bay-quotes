@@ -40,16 +40,7 @@ const Dashboard: React.FC = () => {
   const [isModalOpen, setIsModalOpen] = useState<boolean>(false);
 
   useEffect(() => {
-    console.log('🔵 Dashboard mounted');
-    return () => {
-      console.log('🔴 Dashboard unmounted');
-    };
-  }, []);
-
-  useEffect(() => {
     let isMounted = true; // Flag para evitar race conditions
-
-    console.log('📊 Loading quotes...', { user });
 
     const fetchQuotes = async () => {
       if (!user) return;
@@ -65,7 +56,6 @@ const Dashboard: React.FC = () => {
         // Solo actualizar estado si el componente sigue montado
         if (isMounted) {
           if (fetchError) throw fetchError;
-          console.log('✅ Quotes loaded:', data?.length || 0);
           setQuotes(data || []);
         }
       } catch (err) {
@@ -82,7 +72,6 @@ const Dashboard: React.FC = () => {
     if (user) {
       fetchQuotes();
     } else {
-      console.log('⚠️ No user, skipping fetch');
       if (isMounted) {
         setLoading(false);
       }

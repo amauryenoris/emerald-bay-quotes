@@ -55,8 +55,6 @@ const RentalQuoteApp: React.FC = () => {
   const [activeSpecials, setActiveSpecials] = useState<Special[]>([]);
   const [loadingSpecials, setLoadingSpecials] = useState<boolean>(true);
   
-  // 🔄 Log de render para debugging
-  console.log('🔄 App render', { currentView, user: user?.email, isAdmin, userRole });
   const [rentalData, setRentalData] = useState<RentalData>({
     apartment: '',
     monthlyRent: 0,
@@ -78,7 +76,6 @@ const RentalQuoteApp: React.FC = () => {
   const [availablePrices, setAvailablePrices] = useState<number[]>([]);
 
   useEffect(() => {
-    console.log('⚡ useEffect ejecutado: fetchActiveSpecials');
     const fetchActiveSpecials = async () => {
       try {
         setLoadingSpecials(true);
@@ -110,7 +107,6 @@ const RentalQuoteApp: React.FC = () => {
 
 
   useEffect(() => {
-    console.log('⚡ useEffect ejecutado: checkAdmin', { userId: user?.id });
     const checkAdmin = async () => {
       if (!user) {
         setIsAdmin(false);
@@ -151,11 +147,9 @@ const RentalQuoteApp: React.FC = () => {
   // Protección de vista admin - solo redirige si intenta acceder sin permisos
   // IMPORTANTE: Solo depende de isAdmin para evitar ciclos infinitos
   useEffect(() => {
-    console.log('⚡ useEffect ejecutado: adminViewProtection', { currentView, isAdmin });
     // Solo redirige si está en admin y no tiene permisos
     // Esto evita el ciclo infinito porque no depende de currentView
     if (currentView === 'admin' && !isAdmin) {
-      console.log('⚠️ Intento de acceder a admin sin permisos, redirigiendo a form');
       setCurrentView('form');
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -174,7 +168,7 @@ const RentalQuoteApp: React.FC = () => {
     { id: 'sandbar', name: 'Sandbar (3/2) - 1,333 SQF', category: '3/2', beds: 3, baths: 2, sqft: 1333, rent: 3100 },
     { id: 'reef', name: 'Reef (3/2) - 1,289 SQF', category: '3/2', beds: 3, baths: 2, sqft: 1289, rent: 3200 },
     { id: 'sunrise', name: 'Sunrise (3/2) - 1,289 SQF', category: '3/2', beds: 3, baths: 2, sqft: 1289, rent: 3200 },
-    { id: 'hemingway', name: 'Hemingway (3/2.5) - 1,537 SQF', category: '3/2.5', beds: 3, baths: 2.5, sqft: 1537, rent: 3450 },
+    { id: 'hemingway', name: 'Hemingway (3/2.5) - 1,537 SQF', category: '3/2.5', beds: 3, baths: 2.5, sqft: 1537, rent: 3450, hasGarageRemote: true },
   ];
 
   const getPricingOptions = (apartmentId: string): number[] => {
@@ -238,6 +232,10 @@ const RentalQuoteApp: React.FC = () => {
   const extraParkingRent = useMemo(() => rentalData.needsExtraParking ? 50 : 0, [rentalData.needsExtraParking]);
   const petRent = useMemo(() => rentalData.numberOfPets * 35, [rentalData.numberOfPets]);
   
+  // Garage Remote Deposit (solo para Hemingway)
+  const selectedApartment = useMemo(() => apartments.find(apt => apt.id === rentalData.apartment), [rentalData.apartment]);
+  const garageRemoteDeposit = useMemo(() => selectedApartment?.hasGarageRemote ? 100 : 0, [selectedApartment]);
+  
   const prorationInfo = useMemo(() => {
     if (!rentalData.moveInDate || rentalData.monthlyRent === 0) {
       return {
@@ -291,8 +289,8 @@ const RentalQuoteApp: React.FC = () => {
 
   const monthlyTotal = useMemo(() => baseRent + extraParkingRent + petRent, [baseRent, extraParkingRent, petRent]);
   const moveInCharges = useMemo(() => 
-    effectiveSecurityDeposit + prorationInfo.proratedRent + applicationFee + animalCleanup + prorationInfo.proratedPetRent + prorationInfo.proratedParkingRent - discounts.moveInTotalDiscount,
-    [effectiveSecurityDeposit, prorationInfo.proratedRent, prorationInfo.proratedPetRent, prorationInfo.proratedParkingRent, applicationFee, animalCleanup, discounts.moveInTotalDiscount]
+    effectiveSecurityDeposit + prorationInfo.proratedRent + applicationFee + animalCleanup + prorationInfo.proratedPetRent + prorationInfo.proratedParkingRent + garageRemoteDeposit - discounts.moveInTotalDiscount,
+    [effectiveSecurityDeposit, prorationInfo.proratedRent, prorationInfo.proratedPetRent, prorationInfo.proratedParkingRent, applicationFee, animalCleanup, garageRemoteDeposit, discounts.moveInTotalDiscount]
   );
   const grandTotal = moveInCharges;
   
@@ -871,6 +869,14 @@ const RentalQuoteApp: React.FC = () => {
       if (rentalData.needsAnimalCleanup) {
         doc.text('Animal Clean Up (Non-Refundable)', 20, yPosition);
         doc.text(formatCurrency(animalCleanup), 190, yPosition, { align: 'right' });
+        yPosition += 6;
+      }
+
+      // Garage Remote Deposit (solo para Hemingway)
+      const selectedApartmentForPdf = apartments.find(apt => apt.id === rentalData.apartment);
+      if (selectedApartmentForPdf?.hasGarageRemote) {
+        doc.text('Garage Remote Deposit', 20, yPosition);
+        doc.text(formatCurrency(100), 190, yPosition, { align: 'right' });
         yPosition += 6;
       }
 
@@ -1652,6 +1658,13 @@ const RentalQuoteApp: React.FC = () => {
                       <div className="flex justify-between">
                         <span>Animal Clean Up (Non-Refundable)</span>
                         <span className="font-medium">{formatCurrency(animalCleanup)}</span>
+                      </div>
+                    )}
+
+                    {selectedApartment?.hasGarageRemote && (
+                      <div className="flex justify-between">
+                        <span>Garage Remote Deposit</span>
+                        <span className="font-medium">{formatCurrency(garageRemoteDeposit)}</span>
                       </div>
                     )}
                     
