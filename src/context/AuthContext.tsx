@@ -135,6 +135,70 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     return () => clearInterval(interval)
   }, [user])
 
+  // Verificar sesión cuando la página vuelve a ser visible
+  useEffect(() => {
+    const handleVisibilityChange = async () => {
+      if (document.visibilityState === 'visible') {
+        console.log('📍 Page visible, checking session...')
+        
+        try {
+          // Verificar sesión actual
+          const { data: { session } } = await supabase.auth.getSession()
+          
+          if (session?.user && session.user.id !== user?.id) {
+            // Usuario cambió, recargar
+            console.log('🔄 User changed, reloading...')
+            window.location.reload()
+          } else if (!session && user) {
+            // Sesión expiró
+            console.log('⚠️ Session expired')
+            setUser(null)
+          }
+        } catch (error) {
+          logError(error, 'AuthContext - handleVisibilityChange')
+        }
+      }
+    }
+
+    document.addEventListener('visibilitychange', handleVisibilityChange)
+
+    return () => {
+      document.removeEventListener('visibilitychange', handleVisibilityChange)
+    }
+  }, [user])
+
+  // Verificar sesión cuando la ventana recibe focus
+  useEffect(() => {
+    const handleFocus = async () => {
+      console.log('📍 Window focused, refreshing auth state...')
+      
+      try {
+        const { data: { session } } = await supabase.auth.getSession()
+        
+        if (session?.user) {
+          // Actualizar usuario si cambió
+          if (session.user.id !== user?.id) {
+            console.log('🔄 User ID changed on focus, updating...')
+            setUser(session.user)
+            await loadUserProfile(session.user.id)
+          }
+        } else if (!session && user) {
+          // Sesión expiró
+          console.log('⚠️ Session expired on focus')
+          setUser(null)
+        }
+      } catch (error) {
+        logError(error, 'AuthContext - handleFocus')
+      }
+    }
+
+    window.addEventListener('focus', handleFocus)
+
+    return () => {
+      window.removeEventListener('focus', handleFocus)
+    }
+  }, [user])
+
   const signOut = async () => {
     try {
       await supabase.auth.signOut()

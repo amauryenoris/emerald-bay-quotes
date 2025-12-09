@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { supabase } from '../../../lib/supabase';
 import { useLanguage } from '../../../context/LanguageContext';
 import { useAuth } from '../../../context/AuthContext';
@@ -31,6 +31,7 @@ const Dashboard: React.FC = () => {
   const { user } = useAuth();
   const [quotes, setQuotes] = useState<Quote[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
+  const [error, setError] = useState<string | null>(null);
   const [searchTerm, setSearchTerm] = useState<string>('');
   const [dateFilter, setDateFilter] = useState<{ start: string; end: string }>({
     start: '',
@@ -39,49 +40,34 @@ const Dashboard: React.FC = () => {
   const [selectedQuote, setSelectedQuote] = useState<Quote | null>(null);
   const [isModalOpen, setIsModalOpen] = useState<boolean>(false);
 
-  useEffect(() => {
-    let isMounted = true; // Flag para evitar race conditions
-
-    const fetchQuotes = async () => {
-      if (!user) return;
-
-      try {
-        setLoading(true);
-
-        const { data, error: fetchError } = await supabase
-          .from('quotes')
-          .select('*')
-          .order('created_at', { ascending: false });
-
-        // Solo actualizar estado si el componente sigue montado
-        if (isMounted) {
-          if (fetchError) throw fetchError;
-          setQuotes(data || []);
-        }
-      } catch (err) {
-        if (isMounted) {
-          console.error('Error fetching quotes:', err);
-        }
-      } finally {
-        if (isMounted) {
-          setLoading(false);
-        }
-      }
-    };
-
-    if (user) {
-      fetchQuotes();
-    } else {
-      if (isMounted) {
-        setLoading(false);
-      }
+  const fetchQuotes = useCallback(async () => {
+    if (!user) {
+      setLoading(false);
+      return;
     }
 
-    // Cleanup: marcar como desmontado
-    return () => {
-      isMounted = false;
-    };
+    try {
+      setLoading(true);
+      setError(null);
+      
+      const { data, error: fetchError } = await supabase
+        .from('quotes')
+        .select('*')
+        .order('created_at', { ascending: false });
+      
+      if (fetchError) throw fetchError;
+      setQuotes(data || []);
+    } catch (err) {
+      console.error('Error fetching quotes:', err);
+      setError(err instanceof Error ? err.message : 'Error loading quotes');
+    } finally {
+      setLoading(false);
+    }
   }, [user]);
+
+  useEffect(() => {
+    fetchQuotes();
+  }, [fetchQuotes]);
 
   const formatDate = (dateString: string): string => {
     const date = new Date(dateString);
@@ -173,7 +159,7 @@ const Dashboard: React.FC = () => {
     setSelectedQuote(null);
   };
 
-  if (loading) {
+  if (loading && quotes.length === 0) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-emerald-50 via-white to-emerald-100">
         <div className="text-center">
@@ -188,10 +174,39 @@ const Dashboard: React.FC = () => {
     <div className="min-h-screen bg-gradient-to-br from-emerald-50 via-white to-emerald-100 p-4 md:p-8">
       <div className="max-w-7xl mx-auto">
         {/* Header */}
-        <div className="mb-8">
-          <h1 className="text-3xl font-bold text-gray-800 mb-2">{t('dashboard.title')}</h1>
-          <p className="text-gray-600">Gestiona y visualiza todos los quotes generados</p>
+        <div className="mb-8 flex items-start justify-between">
+          <div>
+            <h1 className="text-3xl font-bold text-gray-800 mb-2">{t('dashboard.title')}</h1>
+            <p className="text-gray-600">Gestiona y visualiza todos los quotes generados</p>
+          </div>
+          <button
+            onClick={fetchQuotes}
+            className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors disabled:bg-gray-400 disabled:cursor-not-allowed flex items-center gap-2"
+            disabled={loading}
+          >
+            <span className={loading ? 'animate-spin' : ''}>🔄</span>
+            Refresh
+          </button>
         </div>
+
+        {/* Error Message */}
+        {error && (
+          <div className="bg-red-50 border border-red-200 rounded-lg p-4 mb-6">
+            <div className="flex items-center gap-2">
+              <span className="text-red-600 text-xl">⚠️</span>
+              <div>
+                <p className="text-sm font-medium text-red-800">Error al cargar quotes</p>
+                <p className="text-sm text-red-600">{error}</p>
+              </div>
+              <button
+                onClick={fetchQuotes}
+                className="ml-auto px-3 py-1 text-sm bg-red-600 text-white rounded hover:bg-red-700 transition-colors"
+              >
+                Reintentar
+              </button>
+            </div>
+          </div>
+        )}
 
         {/* Filtros */}
         <div className="bg-white rounded-lg shadow-md p-6 mb-6">

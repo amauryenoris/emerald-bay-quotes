@@ -54,6 +54,7 @@ const RentalQuoteApp: React.FC = () => {
   const [userRole, setUserRole] = useState<string>('');
   const [activeSpecials, setActiveSpecials] = useState<Special[]>([]);
   const [loadingSpecials, setLoadingSpecials] = useState<boolean>(true);
+  const [dashboardRefresh, setDashboardRefresh] = useState(0);
   
   const [rentalData, setRentalData] = useState<RentalData>({
     apartment: '',
@@ -74,6 +75,32 @@ const RentalQuoteApp: React.FC = () => {
   const [isGeneratingPDF, setIsGeneratingPDF] = useState(false);
   const [showPriceSelector, setShowPriceSelector] = useState(false);
   const [availablePrices, setAvailablePrices] = useState<number[]>([]);
+
+  // Force reload después de inactividad
+  useEffect(() => {
+    let lastActivity = Date.now();
+    
+    const handleActivity = () => {
+      const now = Date.now();
+      const inactiveTime = now - lastActivity;
+      
+      // Si estuvo inactivo más de 1 minuto, recargar
+      if (inactiveTime > 1 * 60 * 1000) {
+        console.log('📍 Inactivity detected, reloading page...');
+        window.location.reload();
+      }
+      
+      lastActivity = now;
+    };
+    
+    window.addEventListener('focus', handleActivity);
+    window.addEventListener('visibilitychange', handleActivity);
+    
+    return () => {
+      window.removeEventListener('focus', handleActivity);
+      window.removeEventListener('visibilitychange', handleActivity);
+    };
+  }, []);
 
   useEffect(() => {
     const fetchActiveSpecials = async () => {
@@ -154,6 +181,13 @@ const RentalQuoteApp: React.FC = () => {
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isAdmin]); // Solo depende de isAdmin, no de currentView
+
+  // Recarga automática del Dashboard cuando se monta
+  useEffect(() => {
+    if (currentView === 'dashboard') {
+      setDashboardRefresh(prev => prev + 1);
+    }
+  }, [currentView]);
 
   const apartments = [
     { id: 'keylime', name: 'Keylime (1/1) - 826 SQF', category: '1/1', beds: 1, baths: 1, sqft: 826, rent: 2100 },
@@ -1722,7 +1756,7 @@ const RentalQuoteApp: React.FC = () => {
           </div>
         </div>
         )}
-        {currentView === 'dashboard' && <Dashboard />}
+        {currentView === 'dashboard' && <Dashboard key={dashboardRefresh} />}
         {currentView === 'admin' && userRole === 'admin' && (
           <AdminPanel />
         )}
