@@ -1729,7 +1729,12 @@ const RentalQuoteApp: React.FC = () => {
               </div>
               <div className="mt-6 space-y-3">
                 <button
-                  onClick={generatePDF}
+                  onClick={(e) => {
+                    e.preventDefault()
+                    e.stopPropagation()
+                    generatePDF()
+                  }}
+                  type="button"
                   disabled={!rentalData.apartment || !rentalData.monthlyRent || !rentalData.tenantName.trim()}
                   className="w-full flex items-center justify-center gap-2 bg-emerald-primary text-white px-4 py-3 rounded-lg hover:bg-emerald-dark disabled:bg-gray-300 disabled:cursor-not-allowed transition-colors font-medium"
                 >
@@ -1738,7 +1743,12 @@ const RentalQuoteApp: React.FC = () => {
                 </button>
 
                 <button
-                  onClick={sendQuoteViaWebhook}
+                  onClick={(e) => {
+                    e.preventDefault()
+                    e.stopPropagation()
+                    sendQuoteViaWebhook()
+                  }}
+                  type="button"
                   disabled={!rentalData.apartment || !rentalData.monthlyRent || !rentalData.tenantName.trim() || !rentalData.tenantEmail.trim() || isGeneratingPDF}
                   className="w-full flex items-center justify-center gap-2 bg-green-600 text-white px-4 py-3 rounded-lg hover:bg-green-700 disabled:bg-gray-300 disabled:cursor-not-allowed transition-colors font-medium"
                 >
