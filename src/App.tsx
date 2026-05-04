@@ -76,29 +76,42 @@ const RentalQuoteApp: React.FC = () => {
   const [showPriceSelector, setShowPriceSelector] = useState(false);
   const [availablePrices, setAvailablePrices] = useState<number[]>([]);
 
-  // Force reload después de inactividad
+  // Force reload después de inactividad real (ausencia del tab por >1 minuto)
   useEffect(() => {
     let lastActivity = Date.now();
-    
-    const handleActivity = () => {
-      const now = Date.now();
-      const inactiveTime = now - lastActivity;
-      
-      // Si estuvo inactivo más de 1 minuto, recargar
+
+    // Actualiza el timestamp con cualquier interacción real del usuario
+    const updateActivity = () => {
+      lastActivity = Date.now();
+    };
+
+    // Solo evalúa el reload cuando el usuario vuelve al tab/foco
+    const handleVisibilityOrFocus = () => {
+      const inactiveTime = Date.now() - lastActivity;
       if (inactiveTime > 1 * 60 * 1000) {
         console.log('📍 Inactivity detected, reloading page...');
         window.location.reload();
       }
-      
-      lastActivity = now;
+      lastActivity = Date.now();
     };
-    
-    window.addEventListener('focus', handleActivity);
-    window.addEventListener('visibilitychange', handleActivity);
-    
+
+    // Actividad real del usuario → mantiene lastActivity actualizado
+    window.addEventListener('mousemove', updateActivity);
+    window.addEventListener('keydown', updateActivity);
+    window.addEventListener('click', updateActivity);
+    window.addEventListener('touchstart', updateActivity);
+
+    // Solo verifica inactividad cuando cambia foco/visibilidad
+    window.addEventListener('focus', handleVisibilityOrFocus);
+    window.addEventListener('visibilitychange', handleVisibilityOrFocus);
+
     return () => {
-      window.removeEventListener('focus', handleActivity);
-      window.removeEventListener('visibilitychange', handleActivity);
+      window.removeEventListener('mousemove', updateActivity);
+      window.removeEventListener('keydown', updateActivity);
+      window.removeEventListener('click', updateActivity);
+      window.removeEventListener('touchstart', updateActivity);
+      window.removeEventListener('focus', handleVisibilityOrFocus);
+      window.removeEventListener('visibilitychange', handleVisibilityOrFocus);
     };
   }, []);
 
