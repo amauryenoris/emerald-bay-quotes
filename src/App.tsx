@@ -25,6 +25,7 @@ interface RentalData {
   numberOfPets: number;
   needsExtraParking: boolean;
   needsAnimalCleanup: boolean;
+  needsAdminFee: boolean;
   selectedSpecials?: string[];
   tenantName: string;
   tenantEmail: string;
@@ -63,6 +64,7 @@ const RentalQuoteApp: React.FC = () => {
     numberOfPets: 0,
     needsExtraParking: false,
     needsAnimalCleanup: false,
+    needsAdminFee: false,
     selectedSpecials: [],
     tenantName: '',
     tenantEmail: '',
@@ -277,6 +279,7 @@ const RentalQuoteApp: React.FC = () => {
   const applicationFee = useMemo(() => rentalData.numberOfPersons * 50, [rentalData.numberOfPersons]);
   const animalCleanup = useMemo(() => rentalData.needsAnimalCleanup ? 500 : 0, [rentalData.needsAnimalCleanup]);
   const extraParkingRent = useMemo(() => rentalData.needsExtraParking ? 50 : 0, [rentalData.needsExtraParking]);
+  const adminFee = useMemo(() => rentalData.needsAdminFee ? 350 : 0, [rentalData.needsAdminFee]);
   const petRent = useMemo(() => rentalData.numberOfPets * 35, [rentalData.numberOfPets]);
   
   // Garage Remote Deposit (solo para Hemingway)
@@ -335,9 +338,9 @@ const RentalQuoteApp: React.FC = () => {
   }, [rentalData.moveInDate, rentalData.monthlyRent, rentalData.numberOfPets, rentalData.needsExtraParking, baseRent, extraParkingRent]);
 
   const monthlyTotal = useMemo(() => baseRent + extraParkingRent + petRent, [baseRent, extraParkingRent, petRent]);
-  const moveInCharges = useMemo(() => 
-    effectiveSecurityDeposit + prorationInfo.proratedRent + applicationFee + animalCleanup + prorationInfo.proratedPetRent + prorationInfo.proratedParkingRent + garageRemoteDeposit - discounts.moveInTotalDiscount,
-    [effectiveSecurityDeposit, prorationInfo.proratedRent, prorationInfo.proratedPetRent, prorationInfo.proratedParkingRent, applicationFee, animalCleanup, garageRemoteDeposit, discounts.moveInTotalDiscount]
+  const moveInCharges = useMemo(() =>
+    effectiveSecurityDeposit + prorationInfo.proratedRent + applicationFee + animalCleanup + prorationInfo.proratedPetRent + prorationInfo.proratedParkingRent + garageRemoteDeposit + adminFee - discounts.moveInTotalDiscount,
+    [effectiveSecurityDeposit, prorationInfo.proratedRent, prorationInfo.proratedPetRent, prorationInfo.proratedParkingRent, applicationFee, animalCleanup, garageRemoteDeposit, adminFee, discounts.moveInTotalDiscount]
   );
   const grandTotal = moveInCharges;
   
@@ -439,6 +442,7 @@ const RentalQuoteApp: React.FC = () => {
           numberOfPets: formData.numberOfPets,
           needsExtraParking: formData.needsExtraParking,
           needsAnimalCleanup: formData.needsAnimalCleanup,
+          needsAdminFee: formData.needsAdminFee,
         },
         costs: {
           monthlyTotal: monthlyTotal,
@@ -916,6 +920,12 @@ const RentalQuoteApp: React.FC = () => {
       if (rentalData.needsAnimalCleanup) {
         doc.text('Animal Clean Up (Non-Refundable)', 20, yPosition);
         doc.text(formatCurrency(animalCleanup), 190, yPosition, { align: 'right' });
+        yPosition += 6;
+      }
+
+      if (rentalData.needsAdminFee) {
+        doc.text('Administration Fee', 20, yPosition);
+        doc.text(formatCurrency(adminFee), 190, yPosition, { align: 'right' });
         yPosition += 6;
       }
 
@@ -1521,6 +1531,23 @@ const RentalQuoteApp: React.FC = () => {
                     </div>
                   </div>
 
+                  <div className="flex items-center gap-3 p-4 bg-gray-50 rounded-lg transition-colors hover:bg-gray-100">
+                    <DollarSign className="w-5 h-5 text-gray-600" />
+                    <div className="flex-1">
+                      <label className="flex items-center gap-2 cursor-pointer">
+                        <input
+                          type="checkbox"
+                          checked={rentalData.needsAdminFee}
+                          onChange={(e) => handleChange('needsAdminFee', e.target.checked)}
+                          className="w-4 h-4 text-emerald-primary bg-gray-100 border-gray-300 rounded focus:ring-emerald-primary"
+                        />
+                        <span className="text-sm font-medium text-gray-700">
+                          Administration Fee (+$350)
+                        </span>
+                      </label>
+                    </div>
+                  </div>
+
                   {/* Especiales desde Supabase */}
                   {loadingSpecials ? (
                     <div className="col-span-2 text-gray-500">
@@ -1708,6 +1735,13 @@ const RentalQuoteApp: React.FC = () => {
                       <div className="flex justify-between">
                         <span>Animal Clean Up (Non-Refundable)</span>
                         <span className="font-medium">{formatCurrency(animalCleanup)}</span>
+                      </div>
+                    )}
+
+                    {rentalData.needsAdminFee && (
+                      <div className="flex justify-between">
+                        <span>Administration Fee</span>
+                        <span className="font-medium">{formatCurrency(adminFee)}</span>
                       </div>
                     )}
 
